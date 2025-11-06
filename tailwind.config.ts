@@ -57,6 +57,25 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        status: {
+          collecting: "hsl(var(--status-collecting))",
+          "collecting-bg": "hsl(var(--status-collecting-bg))",
+          completed: "hsl(var(--status-completed))",
+          "completed-bg": "hsl(var(--status-completed-bg))",
+          sending: "hsl(var(--status-sending))",
+          "sending-bg": "hsl(var(--status-sending-bg))",
+          failed: "hsl(var(--status-failed))",
+          "failed-bg": "hsl(var(--status-failed-bg))",
+        },
+        table: {
+          header: "hsl(var(--table-header))",
+          "row-hover": "hsl(var(--table-row-hover))",
+          "row-failed": "hsl(var(--table-row-failed))",
+        },
+        metric: {
+          warning: "hsl(var(--metric-warning))",
+          success: "hsl(var(--metric-success))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
