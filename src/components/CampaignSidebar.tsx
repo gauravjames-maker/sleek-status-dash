@@ -34,8 +34,12 @@ const navItems: SidebarNavItem[] = [
     label: "People",
     icon: <Users className="w-5 h-5" />,
     expandable: true,
-    href: "/people",
     iconColor: "text-[#10B981]",
+    children: [
+      { label: "Audience", href: "/people/audience", icon: null },
+      { label: "Blueprints", href: "/people/blueprints", icon: null },
+      { label: "Profile lookup", href: "/people/profile-lookup", icon: null },
+    ],
   },
   {
     label: "Content",
