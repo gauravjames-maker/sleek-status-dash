@@ -17,7 +17,7 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 220 13% 20%;
 
-    --primary: 4 77% 56%;
+    --primary: 217 91% 60%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 220 13% 95%;
@@ -34,7 +34,7 @@ All colors MUST be HSL.
 
     --border: 220 13% 91%;
     --input: 220 13% 91%;
-    --ring: 4 77% 56%;
+    --ring: 217 91% 60%;
 
     --radius: 0.5rem;
 
@@ -51,12 +51,12 @@ All colors MUST be HSL.
     /* Sidebar colors */
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 220 13% 20%;
-    --sidebar-primary: 4 77% 56%;
+    --sidebar-primary: 217 91% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 220 13% 97%;
     --sidebar-accent-foreground: 220 13% 20%;
     --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 4 77% 56%;
+    --sidebar-ring: 217 91% 60%;
 
     /* Table colors */
     --table-header: 220 13% 97%;
@@ -78,7 +78,7 @@ All colors MUST be HSL.
     --popover: 220 13% 12%;
     --popover-foreground: 220 13% 95%;
 
-    --primary: 4 77% 56%;
+    --primary: 217 91% 60%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 220 13% 18%;
@@ -95,16 +95,16 @@ All colors MUST be HSL.
 
     --border: 220 13% 20%;
     --input: 220 13% 20%;
-    --ring: 4 77% 56%;
+    --ring: 217 91% 60%;
 
     --sidebar-background: 220 13% 8%;
     --sidebar-foreground: 220 13% 95%;
-    --sidebar-primary: 4 77% 56%;
+    --sidebar-primary: 217 91% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 220 13% 15%;
     --sidebar-accent-foreground: 220 13% 95%;
     --sidebar-border: 220 13% 20%;
-    --sidebar-ring: 4 77% 56%;
+    --sidebar-ring: 217 91% 60%;
 
     --table-header: 220 13% 12%;
     --table-row-hover: 220 13% 14%;

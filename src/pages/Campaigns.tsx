@@ -1,13 +1,13 @@
 import { CampaignSidebar } from "@/components/CampaignSidebar";
-import Performance from "./Performance";
+import { CampaignTable } from "@/components/CampaignTable";
 
-const Index = () => {
+const Campaigns = () => {
   return (
     <div className="flex h-screen overflow-hidden">
       <CampaignSidebar />
-      <Performance />
+      <CampaignTable />
     </div>
   );
 };
 
-export default Index;
+export default Campaigns;
