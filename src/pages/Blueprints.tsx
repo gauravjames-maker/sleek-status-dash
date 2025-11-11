@@ -99,58 +99,77 @@ const Blueprints = () => {
 
         {/* Table */}
         <div className="px-6 py-4">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[40%]">Name / Description</TableHead>
-                <TableHead className="w-[15%]">Node count</TableHead>
-                <TableHead className="w-[15%]">Count</TableHead>
-                <TableHead className="w-[15%]">Location</TableHead>
-                <TableHead className="w-[15%]">Last modified</TableHead>
-                <TableHead className="w-[50px]"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredData.map((blueprint) => (
-                <TableRow key={blueprint.id} className="hover:bg-muted/50">
-                  <TableCell>
-                    <div>
-                      <div className="text-primary font-medium hover:underline cursor-pointer">
-                        {blueprint.name}
-                      </div>
-                      {blueprint.description && (
-                        <div className="text-sm text-muted-foreground">{blueprint.description}</div>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>{blueprint.nodeCount}</TableCell>
-                  <TableCell>{blueprint.count}</TableCell>
-                  <TableCell>{blueprint.location}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 bg-[#10B981] rounded-full flex items-center justify-center text-white text-xs font-semibold">
-                        SY
-                      </div>
-                      <div>
-                        <div className="text-sm font-medium">{blueprint.user}</div>
-                        <div className="text-xs text-muted-foreground">{blueprint.time}</div>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
+          <div className="border border-border rounded-lg overflow-hidden bg-card">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/30 hover:bg-muted/30 border-b border-border">
+                  <TableHead className="w-[35%] font-semibold text-foreground h-12">Name / Description</TableHead>
+                  <TableHead className="w-[12%] font-semibold text-foreground text-center">Node count</TableHead>
+                  <TableHead className="w-[12%] font-semibold text-foreground text-center">Count</TableHead>
+                  <TableHead className="w-[12%] font-semibold text-foreground text-center">Location</TableHead>
+                  <TableHead className="w-[21%] font-semibold text-foreground">Last modified</TableHead>
+                  <TableHead className="w-[8%]"></TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filteredData.map((blueprint, index) => (
+                  <TableRow 
+                    key={blueprint.id} 
+                    className="hover:bg-muted/50 transition-colors border-b border-border last:border-0"
+                  >
+                    <TableCell className="py-4">
+                      <div>
+                        <div className="text-primary font-medium hover:underline cursor-pointer text-[15px]">
+                          {blueprint.name}
+                        </div>
+                        {blueprint.description && (
+                          <div className="text-sm text-muted-foreground mt-0.5">{blueprint.description}</div>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center py-4">
+                      <span className="text-[15px] font-medium">{blueprint.nodeCount}</span>
+                    </TableCell>
+                    <TableCell className="text-center py-4">
+                      <span className="text-[15px] font-medium">{blueprint.count}</span>
+                    </TableCell>
+                    <TableCell className="text-center py-4">
+                      <span className="text-[15px] font-medium text-muted-foreground">{blueprint.location}</span>
+                    </TableCell>
+                    <TableCell className="py-4">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 bg-[#10B981] rounded-full flex items-center justify-center text-white text-xs font-bold shadow-sm">
+                          SY
+                        </div>
+                        <div>
+                          <div className="text-[15px] font-semibold">{blueprint.user}</div>
+                          <div className="text-xs text-muted-foreground">{blueprint.time}</div>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-4">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-9 w-9 hover:bg-muted transition-colors"
+                        >
+                          <Edit className="h-4 w-4 text-muted-foreground" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-9 w-9 hover:bg-muted transition-colors"
+                        >
+                          <MoreVertical className="h-4 w-4 text-muted-foreground" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       </main>
     </div>
