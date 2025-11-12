@@ -45,7 +45,10 @@ const Blueprints = () => {
                 <span className="font-semibold">Blueprint</span>
               </div>
             </div>
-            <Button className="bg-primary text-primary-foreground hover:bg-primary/90">
+            <Button 
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
+              onClick={() => window.location.href = "/people/blueprints/new"}
+            >
               Create Blueprint
             </Button>
           </div>
