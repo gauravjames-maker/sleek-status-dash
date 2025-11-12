@@ -15,6 +15,7 @@ interface FlowNode {
   id: string;
   type: NodeType;
   name?: string;
+  config?: any;
 }
 
 const BlueprintBuilder = () => {
@@ -22,19 +23,40 @@ const BlueprintBuilder = () => {
   const [showNodeMenu, setShowNodeMenu] = useState(false);
   const [showSidePanel, setShowSidePanel] = useState(false);
   const [selectedNodeType, setSelectedNodeType] = useState<NodeType>(null);
+  const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
+  const [nodeName, setNodeName] = useState("");
   const [nodes, setNodes] = useState<FlowNode[]>([
     { id: "start", type: "start" }
   ]);
 
   const handleAddNode = (type: NodeType) => {
-    if (type === "target") {
-      setSelectedNodeType("target");
-      setShowSidePanel(true);
-    } else if (type === "split") {
-      setSelectedNodeType("split");
+    setSelectedNodeType(type);
+    setEditingNodeId(null);
+    setNodeName("");
+    setShowSidePanel(true);
+    setShowNodeMenu(false);
+  };
+
+  const handleSaveNode = () => {
+    const newNode: FlowNode = {
+      id: `${selectedNodeType}-${Date.now()}`,
+      type: selectedNodeType,
+      name: nodeName || `${selectedNodeType} ${nodes.length}`,
+    };
+    
+    setNodes([...nodes, newNode]);
+    setShowSidePanel(false);
+    setNodeName("");
+  };
+
+  const handleEditNode = (nodeId: string) => {
+    const node = nodes.find(n => n.id === nodeId);
+    if (node) {
+      setEditingNodeId(nodeId);
+      setSelectedNodeType(node.type);
+      setNodeName(node.name || "");
       setShowSidePanel(true);
     }
-    setShowNodeMenu(false);
   };
 
   return (
@@ -172,6 +194,11 @@ const BlueprintBuilder = () => {
               </div>
             </Card>
 
+            {/* Connector Line */}
+            <div className="flex justify-center mb-6">
+              <div className="w-0.5 h-8 bg-border"></div>
+            </div>
+
             {/* Add Node Button */}
             <div className="flex justify-center mb-6 relative">
               <Button
@@ -206,6 +233,51 @@ const BlueprintBuilder = () => {
                 </Card>
               )}
             </div>
+
+            {/* Dynamic Nodes */}
+            {nodes.slice(1).map((node, index) => (
+              <div key={node.id}>
+                {/* Node Card */}
+                <Card 
+                  className="p-6 mb-6 border-2 cursor-pointer hover:border-primary/50 transition-colors"
+                  onClick={() => handleEditNode(node.id)}
+                >
+                  <div className="flex items-start gap-4">
+                    <div className={`w-10 h-10 rounded flex items-center justify-center flex-shrink-0 ${
+                      node.type === "target" ? "bg-green-500/10" : "bg-purple-500/10"
+                    }`}>
+                      {node.type === "target" ? (
+                        <TargetIcon className="w-5 h-5 text-green-600" />
+                      ) : (
+                        <Split className="w-5 h-5 text-purple-600" />
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold mb-2">{node.name}</h3>
+                      <div className="text-sm text-muted-foreground">
+                        {node.type === "target" ? "Target node - Click to configure" : "Split node - Click to configure"}
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+
+                {/* Connector Line */}
+                <div className="flex justify-center mb-6">
+                  <div className="w-0.5 h-8 bg-border"></div>
+                </div>
+
+                {/* Add Node Button after each node */}
+                <div className="flex justify-center mb-6 relative">
+                  <Button
+                    className="rounded-full w-10 h-10 bg-primary text-primary-foreground hover:bg-primary/90"
+                    size="icon"
+                    onClick={() => setShowNodeMenu(!showNodeMenu)}
+                  >
+                    <Plus className="h-5 w-5" />
+                  </Button>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </main>
@@ -230,7 +302,11 @@ const BlueprintBuilder = () => {
           <div className="space-y-6">
             <div>
               <label className="text-sm font-medium mb-2 block">Node name</label>
-              <Input placeholder="Enter node name" />
+              <Input 
+                placeholder="Enter node name" 
+                value={nodeName}
+                onChange={(e) => setNodeName(e.target.value)}
+              />
             </div>
 
             <div className="flex items-center justify-between">
@@ -332,7 +408,9 @@ const BlueprintBuilder = () => {
 
             <div className="flex justify-end gap-2 pt-4">
               <Button variant="outline" onClick={() => setShowSidePanel(false)}>Cancel</Button>
-              <Button className="bg-primary text-primary-foreground">Add segment</Button>
+              <Button className="bg-primary text-primary-foreground" onClick={handleSaveNode}>
+                {editingNodeId ? "Save Changes" : "Add segment"}
+              </Button>
             </div>
           </div>
         </SheetContent>
@@ -371,7 +449,9 @@ const BlueprintBuilder = () => {
 
             <div className="flex justify-end gap-2 pt-4">
               <Button variant="outline" onClick={() => setShowSidePanel(false)}>Cancel</Button>
-              <Button className="bg-primary text-primary-foreground">Add to Blueprint</Button>
+              <Button className="bg-primary text-primary-foreground" onClick={handleSaveNode}>
+                {editingNodeId ? "Save Changes" : "Add to Blueprint"}
+              </Button>
             </div>
           </div>
         </SheetContent>
