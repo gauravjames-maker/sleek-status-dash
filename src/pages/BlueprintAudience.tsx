@@ -1,10 +1,10 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { CampaignSidebar } from "@/components/CampaignSidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Network, ChevronLeft, Search, RefreshCw } from "lucide-react";
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 
 const audienceData = [
   { id: 1, name: "SingleStore Large Audience All Types", datasource: "SingleStore QA", type: "SQL", count: "-", user: "Miles Thomason", time: "13 hours ago" },

@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { CampaignSidebar } from "@/components/CampaignSidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,8 +8,6 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Network, ChevronLeft, RefreshCw, Target as TargetIcon, Split, Plus, X, Undo, Redo, BarChart3, MoreVertical } from "lucide-react";
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 
 type NodeType = "start" | "target" | "split" | null;
 
