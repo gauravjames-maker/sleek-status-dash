@@ -67,43 +67,47 @@ const TemplateDetail = () => {
 
           {/* Content */}
           <div className="p-6">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Main content card */}
-              <div className="lg:col-span-2">
-                <div className="border-2 border-dashed border-border rounded-lg p-8 bg-card">
-                  <div className="max-w-2xl mx-auto">
-                    <img 
-                      src="/placeholder.svg" 
-                      alt="No Sales Yet template preview"
-                      className="w-full rounded-lg shadow-sm mb-4"
-                    />
-                    <div className="space-y-3 text-sm text-foreground">
-                      <p className="font-semibold text-base">No Sales Yet?</p>
-                      <p>No sales occurred during this period primarily due to low customer engagement and limited conversion from outreach efforts. The product's value proposition may not have fully aligned with customer needs, and external factors such as market timing and competition also played a role. Additionally, gaps in follow-up and lead nurturing likely reduced conversion opportunities. Steps are being taken to refine messaging, improve outreach, and better align offerings with customer expectations.</p>
-                      <button className="px-6 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90 text-sm font-medium">
-                        Boost your SALES today!
-                      </button>
-                    </div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              {/* Email content card */}
+              <div className="border border-border rounded-lg p-6 bg-card">
+                <div className="space-y-4">
+                  <img 
+                    src="/placeholder.svg" 
+                    alt="No Sales Yet template preview"
+                    className="w-full rounded-lg shadow-sm"
+                  />
+                  <div className="space-y-3 text-sm text-foreground">
+                    <p className="font-semibold text-base">No Sales Yet?</p>
+                    <p className="text-xs leading-relaxed">No sales occurred during this period primarily due to low customer engagement and limited conversion from outreach efforts. The product's value proposition may not have fully aligned with customer needs, and external factors such as market timing and competition also played a role. Additionally, gaps in follow-up and lead nurturing likely reduced conversion opportunities. Steps are being taken to refine messaging, improve outreach, and better align offerings with customer expectations.</p>
+                    <button className="w-full px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90 text-xs font-medium">
+                      Boost your SALES today!
+                    </button>
                   </div>
                 </div>
               </div>
 
-              {/* Sidebar cards */}
-              <div className="space-y-4">
-                <div className="border-2 border-dashed border-border rounded-lg p-6 bg-card flex flex-col items-center justify-center min-h-[200px] hover:border-primary/50 cursor-pointer transition-colors">
-                  <Plus className="w-8 h-8 text-muted-foreground mb-3" />
-                  <span className="text-sm text-muted-foreground">Create Push Content</span>
-                </div>
-                
-                <div className="border-2 border-dashed border-border rounded-lg p-6 bg-card flex flex-col items-center justify-center min-h-[200px] hover:border-primary/50 cursor-pointer transition-colors">
-                  <Plus className="w-8 h-8 text-muted-foreground mb-3" />
-                  <span className="text-sm text-muted-foreground">Create SMS Content</span>
-                </div>
+              {/* Push content card */}
+              <div className="border-2 border-dashed border-border rounded-lg p-6 bg-card flex flex-col items-center justify-center min-h-[400px] hover:border-primary/50 cursor-pointer transition-colors">
+                <Plus className="w-8 h-8 text-muted-foreground mb-3" />
+                <span className="text-sm text-muted-foreground">Create Push Content</span>
+              </div>
+              
+              {/* SMS content card */}
+              <div className="border-2 border-dashed border-border rounded-lg p-6 bg-card flex flex-col items-center justify-center min-h-[400px] hover:border-primary/50 cursor-pointer transition-colors">
+                <Plus className="w-8 h-8 text-muted-foreground mb-3" />
+                <span className="text-sm text-muted-foreground">Create SMS Content</span>
               </div>
             </div>
 
+            {/* Expand/collapse button */}
+            <div className="flex justify-center mt-4">
+              <button className="p-2 text-primary hover:bg-accent rounded-lg">
+                <ChevronLeft className="w-5 h-5 rotate-[-90deg]" />
+              </button>
+            </div>
+
             {/* Bottom sections */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
               {/* Configure Sample Data */}
               <div className="border border-border rounded-lg p-6 bg-card">
                 <div className="flex items-center gap-3 mb-4">
