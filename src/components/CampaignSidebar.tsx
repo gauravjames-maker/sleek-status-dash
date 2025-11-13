@@ -45,8 +45,11 @@ const navItems: SidebarNavItem[] = [
     label: "Content",
     icon: <ImageIcon className="w-5 h-5" />,
     expandable: true,
-    href: "/content",
     iconColor: "text-[#EF4444]",
+    children: [
+      { label: "Templates", href: "/content/templates", icon: null },
+      { label: "Global snippets", href: "/content/global-snippets", icon: null },
+    ],
   },
   {
     label: "Campaigns",
