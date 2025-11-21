@@ -291,14 +291,20 @@ Only return the SQL query, nothing else.`,
               >
                 <ArrowLeft className="h-4 w-4" />
               </Button>
-              <div>
+            <div>
                 <h1 className="text-2xl font-semibold text-foreground">Create Audience</h1>
                 <p className="text-sm text-muted-foreground mt-1">
                   Use AI or write SQL queries to define your audience
                 </p>
               </div>
             </div>
-            <Button onClick={handleSave}>Save Audience</Button>
+            <div className="flex items-center gap-2">
+              <Button onClick={executeQuery} variant="outline">
+                <Play className="h-4 w-4 mr-2" />
+                Preview Results
+              </Button>
+              <Button onClick={handleSave}>Save Audience</Button>
+            </div>
           </div>
         </header>
 
@@ -488,13 +494,6 @@ Only return the SQL query, nothing else.`,
                 </div>
               </TabsContent>
             </Tabs>
-
-            <div className="flex justify-end">
-              <Button onClick={executeQuery} variant="outline">
-                <Play className="h-4 w-4 mr-2" />
-                Preview Results
-              </Button>
-            </div>
           </div>
         </main>
       </div>
