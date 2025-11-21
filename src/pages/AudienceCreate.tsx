@@ -47,6 +47,15 @@ const mockTables = [
   { name: "subscriptions", schema: "public", columns: ["id", "user_id", "plan", "start_date"] },
 ];
 
+// Mock database connections
+const mockDatabaseConnections = [
+  { id: "db-1", name: "Production Database", type: "PostgreSQL" },
+  { id: "db-2", name: "Staging Database", type: "PostgreSQL" },
+  { id: "db-3", name: "Analytics Database", type: "MySQL" },
+  { id: "db-4", name: "Legacy Database", type: "PostgreSQL" },
+  { id: "db-5", name: "Testing Database", type: "PostgreSQL" },
+];
+
 // Sample audience name suggestions
 const audienceNameSuggestions = [
   "Active Users",
@@ -101,6 +110,7 @@ const mockData = {
 const AudienceCreate = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [selectedDatabase, setSelectedDatabase] = useState("");
   const [audienceName, setAudienceName] = useState("");
   const [selectedTable, setSelectedTable] = useState("");
   const [naturalLanguageQuery, setNaturalLanguageQuery] = useState("");
@@ -108,6 +118,7 @@ const AudienceCreate = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [previewData, setPreviewData] = useState<any[]>([]);
   const [showTokenDialog, setShowTokenDialog] = useState(false);
+  const [openDatabaseCombo, setOpenDatabaseCombo] = useState(false);
   const [openNameCombo, setOpenNameCombo] = useState(false);
   const [openTableCombo, setOpenTableCombo] = useState(false);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
@@ -306,6 +317,58 @@ Only return the SQL query, nothing else.`,
           <div className="max-w-6xl mx-auto space-y-6">
             <div className="bg-card rounded-lg border border-border p-6">
               <div className="space-y-4">
+                <div>
+                  <Label htmlFor="database-connection">Database Connection</Label>
+                  <Popover open={openDatabaseCombo} onOpenChange={setOpenDatabaseCombo}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={openDatabaseCombo}
+                        className="w-full justify-between mt-2"
+                      >
+                        {selectedDatabase
+                          ? mockDatabaseConnections.find((db) => db.id === selectedDatabase)?.name
+                          : "Select or search database connection..."}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0 z-50 bg-popover" align="start">
+                      <Command>
+                        <CommandInput placeholder="Search database..." />
+                        <CommandList>
+                          <CommandEmpty>No database found.</CommandEmpty>
+                          <CommandGroup>
+                            {mockDatabaseConnections.map((db) => (
+                              <CommandItem
+                                key={db.id}
+                                value={db.id}
+                                onSelect={(currentValue) => {
+                                  setSelectedDatabase(currentValue);
+                                  setOpenDatabaseCombo(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    selectedDatabase === db.id ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                <div>
+                                  <div className="font-medium">{db.name}</div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {db.type}
+                                  </div>
+                                </div>
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
                 <div>
                   <Label htmlFor="audience-name">Audience Name</Label>
                   <Popover open={openNameCombo} onOpenChange={setOpenNameCombo}>
