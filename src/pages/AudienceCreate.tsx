@@ -92,13 +92,56 @@ const examplePrompts = [
     label: "Premium segment",
     prompt: "Find users with status 'active' who have a premium subscription plan and have made at least 2 purchases this year",
   },
+  {
+    label: "Comprehensive customer profile",
+    prompt: "Show me a detailed customer profile including first name, last name, age calculated from date of birth, email, total order amount with tax and shipping, average order value, number of orders, subscription plan type, subscription start and end dates, last purchase date, customer lifetime value, preferred payment method, billing address city and state, account status, loyalty points balance, and customer segment classification (VIP, Regular, New), filtered for customers who have spent more than $1000 in the last 12 months and have an active subscription, grouped by customer segment and ordered by lifetime value descending with a limit of top 100 customers",
+  },
 ];
 
 const mockData = {
   users: [
-    { id: 1, email: "user1@example.com", created_at: "2024-01-01", status: "active" },
-    { id: 2, email: "user2@example.com", created_at: "2024-01-02", status: "active" },
-    { id: 3, email: "user3@example.com", created_at: "2024-01-03", status: "inactive" },
+    { 
+      id: 1, 
+      first_name: "John",
+      last_name: "Anderson", 
+      email: "john.anderson@example.com", 
+      age: 34,
+      total_amount: 1245.67,
+      order_count: 8,
+      subscription_plan: "Premium",
+      customer_segment: "VIP",
+      loyalty_points: 2450,
+      created_at: "2024-01-01", 
+      status: "active" 
+    },
+    { 
+      id: 2, 
+      first_name: "Sarah",
+      last_name: "Mitchell", 
+      email: "sarah.mitchell@example.com", 
+      age: 28,
+      total_amount: 892.34,
+      order_count: 5,
+      subscription_plan: "Standard",
+      customer_segment: "Regular",
+      loyalty_points: 1680,
+      created_at: "2024-01-02", 
+      status: "active" 
+    },
+    { 
+      id: 3, 
+      first_name: "Michael",
+      last_name: "Chen", 
+      email: "michael.chen@example.com", 
+      age: 42,
+      total_amount: 2567.89,
+      order_count: 15,
+      subscription_plan: "Enterprise",
+      customer_segment: "VIP",
+      loyalty_points: 5890,
+      created_at: "2024-01-03", 
+      status: "active" 
+    },
   ],
   orders: [
     { id: 1, user_id: 1, amount: 99.99, status: "completed" },
