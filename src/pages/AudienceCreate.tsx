@@ -502,7 +502,7 @@ Only return the SQL query, nothing else.`,
       <GPTTokenDialog open={showTokenDialog} onOpenChange={setShowTokenDialog} />
       
       <Dialog open={showPreviewDialog} onOpenChange={setShowPreviewDialog}>
-        <DialogContent className="max-w-5xl max-h-[80vh] flex flex-col">
+        <DialogContent className="max-w-5xl max-h-[80vh] flex flex-col z-50">
           <DialogHeader>
             <DialogTitle>Query Results</DialogTitle>
             <DialogDescription>
