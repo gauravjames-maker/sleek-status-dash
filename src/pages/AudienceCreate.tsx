@@ -1,10 +1,17 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Play, Code, Sparkles, Check, ChevronsUpDown } from "lucide-react";
+import { ArrowLeft, Play, Code, Sparkles, Check, ChevronsUpDown, Search, ArrowUpDown } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Command,
@@ -54,6 +61,30 @@ const audienceNameSuggestions = [
   "Newsletter Subscribers",
 ];
 
+// Example prompts for demo purposes
+const examplePrompts = [
+  {
+    label: "High-value customers",
+    prompt: "Show me all users who have placed more than 3 orders with a total amount greater than $500, ordered by total spend descending",
+  },
+  {
+    label: "Inactive users",
+    prompt: "Find all users who signed up more than 30 days ago but haven't placed any orders yet",
+  },
+  {
+    label: "Recent active subscribers",
+    prompt: "Get all users with active subscriptions that started in the last 90 days, sorted by start date",
+  },
+  {
+    label: "At-risk customers",
+    prompt: "Show users who had orders in the last 6 months but none in the last 60 days",
+  },
+  {
+    label: "Premium segment",
+    prompt: "Find users with status 'active' who have a premium subscription plan and have made at least 2 purchases this year",
+  },
+];
+
 const mockData = {
   users: [
     { id: 1, email: "user1@example.com", created_at: "2024-01-01", status: "active" },
@@ -79,6 +110,10 @@ const AudienceCreate = () => {
   const [showTokenDialog, setShowTokenDialog] = useState(false);
   const [openNameCombo, setOpenNameCombo] = useState(false);
   const [openTableCombo, setOpenTableCombo] = useState(false);
+  const [showPreviewDialog, setShowPreviewDialog] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortColumn, setSortColumn] = useState<string>("");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
 
   const generateSQLFromNaturalLanguage = async () => {
     const token = sessionStorage.getItem("gpt_token");
@@ -169,11 +204,58 @@ Only return the SQL query, nothing else.`,
     // Mock execution - in real app this would call backend
     const mockResult = mockData[selectedTable as keyof typeof mockData] || [];
     setPreviewData(mockResult);
+    setShowPreviewDialog(true);
+    setSearchTerm("");
+    setSortColumn("");
     
     toast({
       title: "Query Executed",
       description: `Found ${mockResult.length} results.`,
     });
+  };
+
+  // Filtered and sorted data
+  const filteredAndSortedData = useMemo(() => {
+    if (!previewData.length) return [];
+
+    let filtered = previewData;
+
+    // Apply search filter
+    if (searchTerm) {
+      filtered = previewData.filter((row) =>
+        Object.values(row).some((value) =>
+          String(value).toLowerCase().includes(searchTerm.toLowerCase())
+        )
+      );
+    }
+
+    // Apply sorting
+    if (sortColumn) {
+      filtered = [...filtered].sort((a, b) => {
+        const aVal = a[sortColumn];
+        const bVal = b[sortColumn];
+        
+        if (aVal === bVal) return 0;
+        
+        const comparison = aVal < bVal ? -1 : 1;
+        return sortDirection === "asc" ? comparison : -comparison;
+      });
+    }
+
+    return filtered;
+  }, [previewData, searchTerm, sortColumn, sortDirection]);
+
+  const handleSort = (column: string) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortColumn(column);
+      setSortDirection("asc");
+    }
+  };
+
+  const useExamplePrompt = (prompt: string) => {
+    setNaturalLanguageQuery(prompt);
   };
 
   const handleSave = () => {
@@ -353,6 +435,24 @@ Only return the SQL query, nothing else.`,
                     onChange={(e) => setNaturalLanguageQuery(e.target.value)}
                     className="mt-2 min-h-[100px]"
                   />
+                  
+                  <div className="mt-4">
+                    <Label className="text-sm text-muted-foreground">Try these examples:</Label>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {examplePrompts.map((example) => (
+                        <Button
+                          key={example.label}
+                          variant="outline"
+                          size="sm"
+                          onClick={() => useExamplePrompt(example.prompt)}
+                          className="text-xs"
+                        >
+                          {example.label}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+
                   <Button
                     onClick={generateSQLFromNaturalLanguage}
                     disabled={isGenerating}
@@ -395,37 +495,71 @@ Only return the SQL query, nothing else.`,
                 Preview Results
               </Button>
             </div>
-
-            {previewData.length > 0 && (
-              <div className="bg-card rounded-lg border border-border p-6">
-                <h3 className="text-lg font-semibold mb-4">Query Results ({previewData.length})</h3>
-                <div className="border border-border rounded-lg overflow-hidden">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        {Object.keys(previewData[0]).map((key) => (
-                          <TableHead key={key}>{key}</TableHead>
-                        ))}
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {previewData.map((row, idx) => (
-                        <TableRow key={idx}>
-                          {Object.values(row).map((value: any, cellIdx) => (
-                            <TableCell key={cellIdx}>{String(value)}</TableCell>
-                          ))}
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </div>
-            )}
           </div>
         </main>
       </div>
 
       <GPTTokenDialog open={showTokenDialog} onOpenChange={setShowTokenDialog} />
+      
+      <Dialog open={showPreviewDialog} onOpenChange={setShowPreviewDialog}>
+        <DialogContent className="max-w-5xl max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Query Results</DialogTitle>
+            <DialogDescription>
+              {filteredAndSortedData.length} of {previewData.length} records
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="flex items-center gap-4 py-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search across all columns..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-auto border border-border rounded-lg">
+            {filteredAndSortedData.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    {Object.keys(filteredAndSortedData[0]).map((key) => (
+                      <TableHead key={key}>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleSort(key)}
+                          className="h-8 px-2 flex items-center gap-1"
+                        >
+                          {key}
+                          <ArrowUpDown className="h-3 w-3" />
+                        </Button>
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredAndSortedData.map((row, idx) => (
+                    <TableRow key={idx}>
+                      {Object.values(row).map((value: any, cellIdx) => (
+                        <TableCell key={cellIdx}>{String(value)}</TableCell>
+                      ))}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <div className="flex items-center justify-center h-32 text-muted-foreground">
+                No results found
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
