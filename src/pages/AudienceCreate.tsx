@@ -4,15 +4,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Play, Code, Sparkles } from "lucide-react";
+import { ArrowLeft, Play, Code, Sparkles, Check, ChevronsUpDown } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Table,
   TableBody,
@@ -24,13 +30,28 @@ import {
 import { CampaignSidebar } from "@/components/CampaignSidebar";
 import { useToast } from "@/hooks/use-toast";
 import GPTTokenDialog from "@/components/GPTTokenDialog";
+import { cn } from "@/lib/utils";
 
 // Mock table data
 const mockTables = [
-  { name: "users", schema: "public" },
-  { name: "orders", schema: "public" },
-  { name: "products", schema: "public" },
-  { name: "subscriptions", schema: "public" },
+  { name: "users", schema: "public", columns: ["id", "email", "created_at", "status"] },
+  { name: "orders", schema: "public", columns: ["id", "user_id", "amount", "status"] },
+  { name: "products", schema: "public", columns: ["id", "name", "price", "category"] },
+  { name: "subscriptions", schema: "public", columns: ["id", "user_id", "plan", "start_date"] },
+];
+
+// Sample audience name suggestions
+const audienceNameSuggestions = [
+  "Active Users",
+  "Premium Subscribers",
+  "Inactive Users (30 days)",
+  "High Value Customers",
+  "Trial Users",
+  "Churned Customers",
+  "New Sign-ups",
+  "Power Users",
+  "Recent Purchasers",
+  "Newsletter Subscribers",
 ];
 
 const mockData = {
@@ -56,6 +77,8 @@ const AudienceCreate = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [previewData, setPreviewData] = useState<any[]>([]);
   const [showTokenDialog, setShowTokenDialog] = useState(false);
+  const [openNameCombo, setOpenNameCombo] = useState(false);
+  const [openTableCombo, setOpenTableCombo] = useState(false);
 
   const generateSQLFromNaturalLanguage = async () => {
     const token = sessionStorage.getItem("gpt_token");
@@ -203,28 +226,107 @@ Only return the SQL query, nothing else.`,
               <div className="space-y-4">
                 <div>
                   <Label htmlFor="audience-name">Audience Name</Label>
-                  <Input
-                    id="audience-name"
-                    placeholder="e.g., High Value Customers"
-                    value={audienceName}
-                    onChange={(e) => setAudienceName(e.target.value)}
-                  />
+                  <Popover open={openNameCombo} onOpenChange={setOpenNameCombo}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={openNameCombo}
+                        className="w-full justify-between mt-2"
+                      >
+                        {audienceName || "Select or type audience name..."}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0 z-50 bg-popover" align="start">
+                      <Command>
+                        <CommandInput
+                          placeholder="Search or type audience name..."
+                          value={audienceName}
+                          onValueChange={setAudienceName}
+                        />
+                        <CommandList>
+                          <CommandEmpty>Type to create a custom name</CommandEmpty>
+                          <CommandGroup>
+                            {audienceNameSuggestions
+                              .filter((name) =>
+                                name.toLowerCase().includes(audienceName.toLowerCase())
+                              )
+                              .map((name) => (
+                                <CommandItem
+                                  key={name}
+                                  value={name}
+                                  onSelect={(currentValue) => {
+                                    setAudienceName(currentValue);
+                                    setOpenNameCombo(false);
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      audienceName === name ? "opacity-100" : "opacity-0"
+                                    )}
+                                  />
+                                  {name}
+                                </CommandItem>
+                              ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 </div>
 
                 <div>
                   <Label htmlFor="table-select">Select Table</Label>
-                  <Select value={selectedTable} onValueChange={setSelectedTable}>
-                    <SelectTrigger id="table-select">
-                      <SelectValue placeholder="Choose a table" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {mockTables.map((table) => (
-                        <SelectItem key={table.name} value={table.name}>
-                          {table.schema}.{table.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Popover open={openTableCombo} onOpenChange={setOpenTableCombo}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={openTableCombo}
+                        className="w-full justify-between mt-2"
+                      >
+                        {selectedTable
+                          ? mockTables.find((table) => table.name === selectedTable)?.name
+                          : "Select or search table..."}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0 z-50 bg-popover" align="start">
+                      <Command>
+                        <CommandInput placeholder="Search table..." />
+                        <CommandList>
+                          <CommandEmpty>No table found.</CommandEmpty>
+                          <CommandGroup>
+                            {mockTables.map((table) => (
+                              <CommandItem
+                                key={table.name}
+                                value={table.name}
+                                onSelect={(currentValue) => {
+                                  setSelectedTable(currentValue);
+                                  setOpenTableCombo(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    selectedTable === table.name ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                <div>
+                                  <div className="font-medium">{table.schema}.{table.name}</div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {table.columns.join(", ")}
+                                  </div>
+                                </div>
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 </div>
               </div>
             </div>
