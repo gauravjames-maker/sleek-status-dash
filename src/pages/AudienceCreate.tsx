@@ -298,13 +298,7 @@ Only return the SQL query, nothing else.`,
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Button onClick={executeQuery} variant="outline">
-                <Play className="h-4 w-4 mr-2" />
-                Preview Results
-              </Button>
-              <Button onClick={handleSave}>Save Audience</Button>
-            </div>
+            <Button onClick={handleSave}>Save Audience</Button>
           </div>
         </header>
 
@@ -470,19 +464,23 @@ Only return the SQL query, nothing else.`,
                 </div>
 
                 {sqlQuery && (
-                  <div className="bg-card rounded-lg border border-border p-6">
+                  <div className="bg-card rounded-lg border border-border p-6 space-y-4">
                     <Label>Generated SQL Query</Label>
                     <Textarea
                       value={sqlQuery}
                       onChange={(e) => setSqlQuery(e.target.value)}
                       className="mt-2 font-mono text-sm min-h-[120px]"
                     />
+                    <Button onClick={executeQuery} variant="outline" className="w-full">
+                      <Play className="h-4 w-4 mr-2" />
+                      Preview Results
+                    </Button>
                   </div>
                 )}
               </TabsContent>
 
               <TabsContent value="manual-sql" className="space-y-4">
-                <div className="bg-card rounded-lg border border-border p-6">
+                <div className="bg-card rounded-lg border border-border p-6 space-y-4">
                   <Label htmlFor="manual-query">SQL Query</Label>
                   <Textarea
                     id="manual-query"
@@ -491,6 +489,10 @@ Only return the SQL query, nothing else.`,
                     onChange={(e) => setSqlQuery(e.target.value)}
                     className="mt-2 font-mono text-sm min-h-[200px]"
                   />
+                  <Button onClick={executeQuery} variant="outline" className="w-full">
+                    <Play className="h-4 w-4 mr-2" />
+                    Preview Results
+                  </Button>
                 </div>
               </TabsContent>
             </Tabs>
