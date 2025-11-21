@@ -11,6 +11,8 @@ import BlueprintAudience from "./pages/BlueprintAudience";
 import BlueprintBuilder from "./pages/BlueprintBuilder";
 import Templates from "./pages/Templates";
 import TemplateDetail from "./pages/TemplateDetail";
+import Audience from "./pages/Audience";
+import AudienceCreate from "./pages/AudienceCreate";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +30,8 @@ const App = () => (
           <Route path="/people/blueprints/new" element={<BlueprintCreate />} />
           <Route path="/people/blueprints/new/audience" element={<BlueprintAudience />} />
           <Route path="/people/blueprints/builder/:id" element={<BlueprintBuilder />} />
+          <Route path="/people/audience" element={<Audience />} />
+          <Route path="/people/audience/create" element={<AudienceCreate />} />
           <Route path="/content/templates" element={<Templates />} />
           <Route path="/content/templates/:id" element={<TemplateDetail />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
