@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Play, Code, Sparkles, Check, ChevronsUpDown, Search, ArrowUpDown, X } from "lucide-react";
+import { ArrowLeft, Play, Code, Sparkles, Check, ChevronsUpDown, Search, ArrowUpDown, X, Info } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -181,6 +181,7 @@ const AudienceCreate = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortColumn, setSortColumn] = useState<string>("");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [showInfoDialog, setShowInfoDialog] = useState(false);
 
   const generateSQLFromNaturalLanguage = async () => {
     const token = sessionStorage.getItem("gpt_token");
@@ -358,11 +359,23 @@ Only return the SQL query, nothing else.`,
               >
                 <ArrowLeft className="h-4 w-4" />
               </Button>
-            <div>
-                <h1 className="text-2xl font-semibold text-foreground">Create Audience</h1>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Use AI or write SQL queries to define your audience
-                </p>
+            <div className="flex-1">
+                <div className="flex items-center gap-3">
+                  <div>
+                    <h1 className="text-2xl font-semibold text-foreground">Create Audience</h1>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Use AI or write SQL queries to define your audience
+                    </p>
+                  </div>
+                  <Badge 
+                    variant="outline" 
+                    className="cursor-pointer hover:bg-accent transition-colors flex items-center gap-1.5 px-3 py-1"
+                    onClick={() => setShowInfoDialog(true)}
+                  >
+                    <Info className="h-3.5 w-3.5" />
+                    How SQL AI Works
+                  </Badge>
+                </div>
               </div>
             </div>
             <Button onClick={handleSave}>Save Audience</Button>
@@ -651,6 +664,31 @@ Only return the SQL query, nothing else.`,
       </div>
 
       <GPTTokenDialog open={showTokenDialog} onOpenChange={setShowTokenDialog} />
+
+      <Dialog open={showInfoDialog} onOpenChange={setShowInfoDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Info className="h-5 w-5 text-primary" />
+              How MG - AI Works
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 text-sm text-muted-foreground leading-relaxed">
+            <p>
+              Don't worry if you're not tech-savvy—here's how MG - AI works:
+            </p>
+            <p>
+              Just select the table(s) and schema(s) you want to explore. You can pick one table or many, across schemas if needed. Add all you need to know about which table and schema your data exists in for accurate results. If you are unsure about the schemas, that's also okay—having only the table details will still do the job.
+            </p>
+            <p>
+              Then, simply tell MG - AI in plain English how you'd like to see your audience. MG - AI will do all the hard work, writing the right SQL queries behind the scenes to get you the results you want.
+            </p>
+            <p>
+              If you feel MG - AI didn't quite get it right, you can edit the SQL yourself. This way, you get the best of both worlds—ease of AI assistance with full control when you need it.
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
       
       <Dialog open={showPreviewDialog} onOpenChange={setShowPreviewDialog}>
         <DialogContent className="max-w-5xl max-h-[80vh] flex flex-col z-50">
