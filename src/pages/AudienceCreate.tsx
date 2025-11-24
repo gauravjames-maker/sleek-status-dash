@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Play, Code, Sparkles, Check, ChevronsUpDown, Search, ArrowUpDown } from "lucide-react";
+import { ArrowLeft, Play, Code, Sparkles, Check, ChevronsUpDown, Search, ArrowUpDown, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -38,6 +38,16 @@ import { CampaignSidebar } from "@/components/CampaignSidebar";
 import { useToast } from "@/hooks/use-toast";
 import GPTTokenDialog from "@/components/GPTTokenDialog";
 import { cn } from "@/lib/utils";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
+
+// Mock schema data
+const mockSchemas = [
+  { name: "public", description: "Default public schema" },
+  { name: "analytics", description: "Analytics and reporting tables" },
+  { name: "archive", description: "Historical data archive" },
+  { name: "staging", description: "Staging environment tables" },
+];
 
 // Mock table data
 const mockTables = [
@@ -45,6 +55,8 @@ const mockTables = [
   { name: "orders", schema: "public", columns: ["id", "user_id", "amount", "status"] },
   { name: "products", schema: "public", columns: ["id", "name", "price", "category"] },
   { name: "subscriptions", schema: "public", columns: ["id", "user_id", "plan", "start_date"] },
+  { name: "customers", schema: "analytics", columns: ["id", "name", "segment", "ltv"] },
+  { name: "events", schema: "analytics", columns: ["id", "event_type", "timestamp", "user_id"] },
 ];
 
 // Mock database connections
@@ -155,15 +167,16 @@ const AudienceCreate = () => {
   const { toast } = useToast();
   const [selectedDatabase, setSelectedDatabase] = useState("");
   const [audienceName, setAudienceName] = useState("");
-  const [selectedTable, setSelectedTable] = useState("");
+  const [selectedTables, setSelectedTables] = useState<string[]>([]);
+  const [selectedSchemas, setSelectedSchemas] = useState<string[]>([]);
   const [naturalLanguageQuery, setNaturalLanguageQuery] = useState("");
   const [sqlQuery, setSqlQuery] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [previewData, setPreviewData] = useState<any[]>([]);
   const [showTokenDialog, setShowTokenDialog] = useState(false);
   const [openDatabaseCombo, setOpenDatabaseCombo] = useState(false);
-  const [openNameCombo, setOpenNameCombo] = useState(false);
   const [openTableCombo, setOpenTableCombo] = useState(false);
+  const [openSchemaCombo, setOpenSchemaCombo] = useState(false);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortColumn, setSortColumn] = useState<string>("");
@@ -177,10 +190,10 @@ const AudienceCreate = () => {
       return;
     }
 
-    if (!selectedTable || !naturalLanguageQuery) {
+    if (selectedTables.length === 0 || !naturalLanguageQuery) {
       toast({
         title: "Missing Information",
-        description: "Please select a table and enter your query.",
+        description: "Please select at least one table and enter your query.",
         variant: "destructive",
       });
       return;
@@ -200,9 +213,8 @@ const AudienceCreate = () => {
           messages: [
             {
               role: "system",
-              content: `You are a SQL expert. Convert natural language queries to SQL. The available table is "${selectedTable}" with the following structure:
-${selectedTable === "users" ? "Columns: id (int), email (text), created_at (date), status (text)" : ""}
-${selectedTable === "orders" ? "Columns: id (int), user_id (int), amount (decimal), status (text)" : ""}
+              content: `You are a SQL expert. Convert natural language queries to SQL. The available tables are: ${selectedTables.join(", ")}. 
+Available schemas: ${selectedSchemas.length > 0 ? selectedSchemas.join(", ") : "all"}
 Only return the SQL query, nothing else.`,
             },
             {
@@ -256,7 +268,8 @@ Only return the SQL query, nothing else.`,
     }
 
     // Mock execution - in real app this would call backend
-    const mockResult = mockData[selectedTable as keyof typeof mockData] || [];
+    const firstTable = selectedTables[0] || "users";
+    const mockResult = mockData[firstTable as keyof typeof mockData] || [];
     setPreviewData(mockResult);
     setShowPreviewDialog(true);
     setSearchTerm("");
@@ -413,77 +426,39 @@ Only return the SQL query, nothing else.`,
                 </div>
 
                 <div>
-                  <Label htmlFor="audience-name">Audience Name</Label>
-                  <Popover open={openNameCombo} onOpenChange={setOpenNameCombo}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={openNameCombo}
-                        className="w-full justify-between mt-2"
-                      >
-                        {audienceName || "Select or type audience name..."}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-full p-0 z-50 bg-popover" align="start">
-                      <Command>
-                        <CommandInput
-                          placeholder="Search or type audience name..."
-                          value={audienceName}
-                          onValueChange={setAudienceName}
-                        />
-                        <CommandList>
-                          <CommandEmpty>Type to create a custom name</CommandEmpty>
-                          <CommandGroup>
-                            {audienceNameSuggestions
-                              .filter((name) =>
-                                name.toLowerCase().includes(audienceName.toLowerCase())
-                              )
-                              .map((name) => (
-                                <CommandItem
-                                  key={name}
-                                  value={name}
-                                  onSelect={(currentValue) => {
-                                    setAudienceName(currentValue);
-                                    setOpenNameCombo(false);
-                                  }}
-                                >
-                                  <Check
-                                    className={cn(
-                                      "mr-2 h-4 w-4",
-                                      audienceName === name ? "opacity-100" : "opacity-0"
-                                    )}
-                                  />
-                                  {name}
-                                </CommandItem>
-                              ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                </div>
-
-                <div>
-                  <Label htmlFor="table-select">Select Table</Label>
+                  <Label htmlFor="table-select">Select Table (Multiple)</Label>
                   <Popover open={openTableCombo} onOpenChange={setOpenTableCombo}>
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
                         role="combobox"
                         aria-expanded={openTableCombo}
-                        className="w-full justify-between mt-2"
+                        className="w-full justify-between mt-2 h-auto min-h-[40px]"
                       >
-                        {selectedTable
-                          ? mockTables.find((table) => table.name === selectedTable)?.name
-                          : "Select or search table..."}
+                        <div className="flex flex-wrap gap-1 flex-1">
+                          {selectedTables.length > 0 ? (
+                            selectedTables.map((tableName) => (
+                              <Badge key={tableName} variant="secondary" className="gap-1">
+                                {tableName}
+                                <X 
+                                  className="h-3 w-3 cursor-pointer" 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedTables(selectedTables.filter(t => t !== tableName));
+                                  }}
+                                />
+                              </Badge>
+                            ))
+                          ) : (
+                            <span className="text-muted-foreground">Select tables...</span>
+                          )}
+                        </div>
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-full p-0 z-50 bg-popover" align="start">
                       <Command>
-                        <CommandInput placeholder="Search table..." />
+                        <CommandInput placeholder="Search tables..." />
                         <CommandList>
                           <CommandEmpty>No table found.</CommandEmpty>
                           <CommandGroup>
@@ -492,20 +467,89 @@ Only return the SQL query, nothing else.`,
                                 key={table.name}
                                 value={table.name}
                                 onSelect={(currentValue) => {
-                                  setSelectedTable(currentValue);
-                                  setOpenTableCombo(false);
+                                  setSelectedTables(
+                                    selectedTables.includes(currentValue)
+                                      ? selectedTables.filter(t => t !== currentValue)
+                                      : [...selectedTables, currentValue]
+                                  );
                                 }}
                               >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    selectedTable === table.name ? "opacity-100" : "opacity-0"
-                                  )}
+                                <Checkbox
+                                  checked={selectedTables.includes(table.name)}
+                                  className="mr-2"
                                 />
                                 <div>
                                   <div className="font-medium">{table.schema}.{table.name}</div>
                                   <div className="text-xs text-muted-foreground">
                                     {table.columns.join(", ")}
+                                  </div>
+                                </div>
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                <div>
+                  <Label htmlFor="schema-select">Select Schema (Multiple)</Label>
+                  <Popover open={openSchemaCombo} onOpenChange={setOpenSchemaCombo}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={openSchemaCombo}
+                        className="w-full justify-between mt-2 h-auto min-h-[40px]"
+                      >
+                        <div className="flex flex-wrap gap-1 flex-1">
+                          {selectedSchemas.length > 0 ? (
+                            selectedSchemas.map((schemaName) => (
+                              <Badge key={schemaName} variant="secondary" className="gap-1">
+                                {schemaName}
+                                <X 
+                                  className="h-3 w-3 cursor-pointer" 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedSchemas(selectedSchemas.filter(s => s !== schemaName));
+                                  }}
+                                />
+                              </Badge>
+                            ))
+                          ) : (
+                            <span className="text-muted-foreground">Select schemas...</span>
+                          )}
+                        </div>
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0 z-50 bg-popover" align="start">
+                      <Command>
+                        <CommandInput placeholder="Search schemas..." />
+                        <CommandList>
+                          <CommandEmpty>No schema found.</CommandEmpty>
+                          <CommandGroup>
+                            {mockSchemas.map((schema) => (
+                              <CommandItem
+                                key={schema.name}
+                                value={schema.name}
+                                onSelect={(currentValue) => {
+                                  setSelectedSchemas(
+                                    selectedSchemas.includes(currentValue)
+                                      ? selectedSchemas.filter(s => s !== currentValue)
+                                      : [...selectedSchemas, currentValue]
+                                  );
+                                }}
+                              >
+                                <Checkbox
+                                  checked={selectedSchemas.includes(schema.name)}
+                                  className="mr-2"
+                                />
+                                <div>
+                                  <div className="font-medium">{schema.name}</div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {schema.description}
                                   </div>
                                 </div>
                               </CommandItem>
