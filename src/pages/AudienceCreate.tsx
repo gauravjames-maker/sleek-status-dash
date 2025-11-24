@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Play, Code, Sparkles, Check, ChevronsUpDown, Search, ArrowUpDown, X, Info } from "lucide-react";
+import { ArrowLeft, Play, Code, Sparkles, Check, ChevronsUpDown, Search, ArrowUpDown, X, Info, Save, Trash2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -182,6 +182,7 @@ const AudienceCreate = () => {
   const [sortColumn, setSortColumn] = useState<string>("");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [showInfoDialog, setShowInfoDialog] = useState(false);
+  const [savedPreferences, setSavedPreferences] = useState(examplePrompts);
 
   const generateSQLFromNaturalLanguage = async () => {
     const token = sessionStorage.getItem("gpt_token");
@@ -324,6 +325,38 @@ Only return the SQL query, nothing else.`,
 
   const useExamplePrompt = (prompt: string) => {
     setNaturalLanguageQuery(prompt);
+  };
+
+  const savePreference = () => {
+    if (!naturalLanguageQuery.trim()) {
+      toast({
+        title: "Empty Query",
+        description: "Please enter a query before saving.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const label = naturalLanguageQuery.substring(0, 30) + (naturalLanguageQuery.length > 30 ? "..." : "");
+    const newPreference = {
+      label,
+      prompt: naturalLanguageQuery,
+    };
+
+    setSavedPreferences([...savedPreferences, newPreference]);
+    
+    toast({
+      title: "Preference Saved",
+      description: "Your audience preference has been saved.",
+    });
+  };
+
+  const deletePreference = (index: number) => {
+    setSavedPreferences(savedPreferences.filter((_, i) => i !== index));
+    toast({
+      title: "Preference Deleted",
+      description: "Audience preference has been removed.",
+    });
   };
 
   const handleSave = () => {
@@ -602,28 +635,51 @@ Only return the SQL query, nothing else.`,
                   <div className="mt-4">
                     <Label className="text-sm text-muted-foreground">Audience Preference</Label>
                     <div className="flex flex-wrap gap-2 mt-2">
-                      {examplePrompts.map((example) => (
-                        <Button
-                          key={example.label}
-                          variant="outline"
-                          size="sm"
-                          onClick={() => useExamplePrompt(example.prompt)}
-                          className="text-xs"
-                        >
-                          {example.label}
-                        </Button>
+                      {savedPreferences.map((example, index) => (
+                        <div key={index} className="relative group">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => useExamplePrompt(example.prompt)}
+                            className="text-xs pr-8"
+                          >
+                            {example.label}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="absolute right-0 top-0 h-full w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deletePreference(index);
+                            }}
+                          >
+                            <Trash2 className="h-3 w-3 text-destructive" />
+                          </Button>
+                        </div>
                       ))}
                     </div>
                   </div>
 
-                  <Button
-                    onClick={generateSQLFromNaturalLanguage}
-                    disabled={isGenerating}
-                    className="mt-4"
-                  >
-                    <Sparkles className="h-4 w-4 mr-2" />
-                    {isGenerating ? "Generating..." : "Generate SQL"}
-                  </Button>
+                  <div className="flex gap-2 mt-4">
+                    <Button
+                      onClick={generateSQLFromNaturalLanguage}
+                      disabled={isGenerating}
+                      className="flex-1"
+                    >
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      {isGenerating ? "Generating..." : "Generate SQL"}
+                    </Button>
+                    {naturalLanguageQuery.trim() && (
+                      <Button
+                        onClick={savePreference}
+                        variant="outline"
+                      >
+                        <Save className="h-4 w-4 mr-2" />
+                        Save Preference
+                      </Button>
+                    )}
+                  </div>
                 </div>
 
                 {sqlQuery && (
