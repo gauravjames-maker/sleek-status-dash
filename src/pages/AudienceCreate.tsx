@@ -600,7 +600,8 @@ Only return the SQL query, nothing else.`,
                   />
                   
                   <div className="mt-4">
-                    <div className="flex flex-wrap gap-2">
+                    <Label className="text-sm text-muted-foreground">Audience Preference</Label>
+                    <div className="flex flex-wrap gap-2 mt-2">
                       {examplePrompts.map((example) => (
                         <Button
                           key={example.label}
