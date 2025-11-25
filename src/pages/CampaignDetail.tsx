@@ -86,7 +86,7 @@ const CampaignDetail = () => {
             <div className="flex items-center gap-2 text-sm">
               <span className="text-muted-foreground">Last modified:</span>
               <Avatar className="h-5 w-5">
-                <AvatarFallback className="text-xs font-semibold bg-[#10B981] text-white">
+                <AvatarFallback className="text-xs font-semibold bg-status-completed text-white">
                   GJ
                 </AvatarFallback>
               </Avatar>
@@ -266,11 +266,11 @@ const CampaignDetail = () => {
                     </div>
 
                     <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-sm text-[#10B981]">
+                      <div className="flex items-center gap-2 text-sm text-status-completed">
                         <span className="text-lg">✓</span>
                         <span>0 email spam tests</span>
                       </div>
-                      <div className="flex items-center gap-2 text-sm text-[#10B981]">
+                      <div className="flex items-center gap-2 text-sm text-status-completed">
                         <span className="text-lg">✓</span>
                         <span>0 email client tests</span>
                       </div>
@@ -279,15 +279,13 @@ const CampaignDetail = () => {
 
                   {/* Right column - Email preview */}
                   <div className="bg-muted rounded-lg p-6 flex items-center justify-center">
-                    <div className="bg-white rounded shadow-lg max-w-md w-full p-6">
+                    <div className="bg-card rounded shadow-lg max-w-md w-full p-6">
                       <div className="space-y-4">
-                        <h3 className="text-xl font-bold text-center">No Sales Yet?</h3>
-                        <img 
-                          src="/placeholder.svg" 
-                          alt="Email preview" 
-                          className="w-full rounded"
-                        />
-                        <div className="text-sm text-gray-600 space-y-2">
+                        <h3 className="text-xl font-bold text-center text-card-foreground">No Sales Yet?</h3>
+                        <div className="w-full h-32 bg-muted rounded flex items-center justify-center">
+                          <span className="text-muted-foreground text-sm">Email content preview</span>
+                        </div>
+                        <div className="text-sm text-muted-foreground space-y-2">
                           <p>
                             No sales occurred during this period primarily due to the customer
                             engagement and service connection from outreach efforts. The
@@ -298,7 +296,7 @@ const CampaignDetail = () => {
                           </p>
                         </div>
                         <div className="flex justify-center">
-                          <Button className="bg-[#4A9EFF] hover:bg-[#4A9EFF]/90 text-white">
+                          <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">
                             Generate SALES today!
                           </Button>
                         </div>
