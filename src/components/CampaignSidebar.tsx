@@ -55,8 +55,14 @@ const navItems: SidebarNavItem[] = [
     label: "Campaigns",
     icon: <Send className="w-5 h-5" />,
     expandable: true,
-    href: "/campaigns",
     iconColor: "text-[#3B82F6]",
+    children: [
+      { label: "Marketing", href: "/campaigns/marketing", icon: null },
+      { label: "Experiments", href: "/campaigns/experiments", icon: null },
+      { label: "Transactional", href: "/campaigns/transactional", icon: null },
+      { label: "External", href: "/campaigns/external", icon: null },
+      { label: "Orchestration", href: "/campaigns/orchestration", icon: null },
+    ],
   },
   {
     label: "Analytics",
@@ -75,7 +81,7 @@ const navItems: SidebarNavItem[] = [
 ];
 
 export const CampaignSidebar = () => {
-  const [expandedItems, setExpandedItems] = useState<string[]>(["Dashboard"]);
+  const [expandedItems, setExpandedItems] = useState<string[]>(["Dashboard", "Campaigns"]);
 
   const toggleItem = (label: string) => {
     setExpandedItems((prev) =>
