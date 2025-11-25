@@ -32,7 +32,7 @@ const CampaignDetail = () => {
                     >
                       Marketing campaigns
                     </span>
-                    <span>/</span>
+                    <span>›</span>
                     <span>Outbound campaign</span>
                   </div>
                   <div className="flex items-center gap-3">
@@ -103,80 +103,76 @@ const CampaignDetail = () => {
               <CardContent className="p-6">
                 <div className="flex items-start justify-between mb-6">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center">
-                      <span className="text-lg">1</span>
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center border-2 border-muted-foreground/30 bg-muted/30">
+                      <span className="text-sm font-medium text-muted-foreground">1</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <User className="h-5 w-5 text-primary" />
-                      <h2 className="text-xl font-semibold">Who</h2>
+                      <h2 className="text-lg font-semibold">Who</h2>
                     </div>
                   </div>
-                  <Button variant="outline">Edit</Button>
+                  <Button variant="outline" size="sm">Edit</Button>
                 </div>
 
                 <div className="space-y-4">
                   <div>
-                    <h3 className="font-semibold mb-3">Target audience</h3>
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-medium mb-3">Target audience</h3>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <div className="flex items-center gap-2 text-sm">
                         <User className="h-4 w-4 text-primary" />
-                        <span className="text-primary">GJ BP - 1</span>
+                        <span className="text-primary font-medium">GJ BP - 1</span>
+                        <span className="text-muted-foreground">- 1 of 8 nodes</span>
                       </div>
-                      <span className="text-muted-foreground">- 1 of 8 nodes</span>
-                      <Badge variant="secondary" className="gap-1">
-                        <span className="text-xs">Blueprint Filter</span>
+                      <Badge variant="secondary" className="text-xs">
+                        Blueprint Filter
                       </Badge>
                     </div>
                   </div>
 
                   <Separator />
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-6">
                     <div>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-                        <span>Total users</span>
-                      </div>
+                      <div className="text-xs text-muted-foreground mb-2">Total users</div>
                       <div className="flex items-center gap-2">
-                        <span className="text-2xl font-semibold">50</span>
-                        <Button variant="ghost" size="icon" className="h-6 w-6">
+                        <span className="text-xl font-medium">50</span>
+                        <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground">
                           <RefreshCw className="h-3.5 w-3.5" />
                         </Button>
                       </div>
                     </div>
                     <div>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-                        <span>Last counted</span>
-                      </div>
-                      <div className="flex items-center gap-2">
+                      <div className="text-xs text-muted-foreground mb-2">Last counted</div>
+                      <div className="flex items-center gap-2 text-sm">
                         <span>Nov 25, 2025, 05:09 PM</span>
-                        <span className="text-primary cursor-pointer hover:underline">0926613</span>
+                        <span className="text-primary cursor-pointer hover:underline text-xs">0006613</span>
                       </div>
                     </div>
                   </div>
 
                   <div>
-                    <Button variant="link" className="h-auto p-0 text-sm">
+                    <Button variant="link" className="h-auto p-0 text-sm font-normal">
                       <span className="flex items-center gap-2">
-                        Data variables
-                        <Badge variant="secondary" className="rounded-full w-5 h-5 flex items-center justify-center p-0">
-                          <span className="text-xs">4</span>
+                        <span>Data variables</span>
+                        <Badge variant="secondary" className="rounded-full w-5 h-5 flex items-center justify-center p-0 text-xs bg-primary/10 text-primary border-0">
+                          3
                         </Badge>
                       </span>
                     </Button>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      <Badge variant="outline">New Variable</Badge>
-                      <Badge variant="outline">true</Badge>
-                      <Badge variant="outline">Limit</Badge>
-                      <Badge variant="outline">25</Badge>
-                      <Badge variant="outline">gender</Badge>
-                      <Badge variant="outline">M</Badge>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Badge variant="outline" className="font-normal">New Variable</Badge>
+                      <Badge variant="outline" className="font-normal">true</Badge>
+                      <Badge variant="outline" className="font-normal">Limit</Badge>
+                      <Badge variant="outline" className="font-normal">25</Badge>
+                      <Badge variant="outline" className="font-normal">gender</Badge>
+                      <Badge variant="outline" className="font-normal">M</Badge>
                     </div>
                   </div>
 
                   <Separator />
 
                   <div>
-                    <div className="text-sm text-muted-foreground mb-2">Audience recording</div>
+                    <div className="text-xs text-muted-foreground mb-2">Audience recording</div>
                     <div className="text-sm">Broken AR Mapping for In-App - 1 of 8 nodes</div>
                   </div>
                 </div>
@@ -188,25 +184,25 @@ const CampaignDetail = () => {
               <CardContent className="p-6">
                 <div className="flex items-start justify-between mb-6">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center">
-                      <span className="text-lg">2</span>
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center border-2 border-muted-foreground/30 bg-muted/30">
+                      <span className="text-sm font-medium text-muted-foreground">2</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Calendar className="h-5 w-5 text-primary" />
-                      <h2 className="text-xl font-semibold">When</h2>
+                      <h2 className="text-lg font-semibold">When</h2>
                     </div>
                   </div>
-                  <Button variant="outline">Add</Button>
+                  <Button variant="outline" size="sm">Add</Button>
                 </div>
 
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <div>
-                    <h3 className="font-semibold mb-2">Schedule type</h3>
-                    <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-medium mb-3">Schedule type</h3>
+                    <div className="flex items-center gap-2 text-sm mb-2">
                       <Clock className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-muted-foreground">Unscheduled</span>
+                      <span>Unscheduled</span>
                     </div>
-                    <p className="text-sm text-muted-foreground mt-2">
+                    <p className="text-xs text-muted-foreground">
                       Launch your campaign at any time
                     </p>
                   </div>
@@ -219,85 +215,88 @@ const CampaignDetail = () => {
               <CardContent className="p-6">
                 <div className="flex items-start justify-between mb-6">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center">
-                      <span className="text-lg">3</span>
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center border-2 border-muted-foreground/30 bg-muted/30">
+                      <span className="text-sm font-medium text-muted-foreground">3</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Mail className="h-5 w-5 text-primary" />
-                      <h2 className="text-xl font-semibold">What</h2>
+                      <h2 className="text-lg font-semibold">What</h2>
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <Button variant="outline">Preview & test</Button>
-                    <Button variant="outline">Edit</Button>
+                    <Button variant="outline" size="sm">Preview & test</Button>
+                    <Button variant="outline" size="sm">Edit</Button>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-6">
+                <div className="grid grid-cols-[400px_1fr] gap-8">
                   {/* Left column - Email details */}
                   <div className="space-y-4">
-                    <div className="grid grid-cols-[120px_1fr] gap-2 text-sm">
-                      <span className="text-muted-foreground">Template</span>
-                      <span className="text-primary">Gaurav&lt;&gt;Content</span>
+                    <div className="grid grid-cols-[140px_1fr] gap-x-4 gap-y-2 text-sm">
+                      <span className="text-muted-foreground text-xs">Template</span>
+                      <span className="text-primary cursor-pointer hover:underline">Gaurav&lt;&gt;Content</span>
 
-                      <span className="text-muted-foreground">Supplemental data</span>
+                      <span className="text-muted-foreground text-xs">Supplemental data</span>
                       <span className="text-muted-foreground">-</span>
 
-                      <span className="text-muted-foreground">Subject line</span>
+                      <span className="text-muted-foreground text-xs">Subject line</span>
                       <span>No sales?</span>
 
-                      <span className="text-muted-foreground">Preheader</span>
+                      <span className="text-muted-foreground text-xs">Preheader</span>
                       <span className="text-muted-foreground">-</span>
 
-                      <span className="text-muted-foreground">Sending profile</span>
+                      <span className="text-muted-foreground text-xs">Sending profile</span>
                       <span className="text-muted-foreground">-</span>
 
-                      <span className="text-muted-foreground">From name</span>
+                      <span className="text-muted-foreground text-xs">From name</span>
                       <span>Honey</span>
 
-                      <span className="text-muted-foreground">From address</span>
+                      <span className="text-muted-foreground text-xs">From address</span>
                       <span>gaurav.james@messagegears.com</span>
 
-                      <span className="text-muted-foreground">Reply-to name</span>
+                      <span className="text-muted-foreground text-xs">Reply-to name</span>
                       <span className="text-muted-foreground">-</span>
 
-                      <span className="text-muted-foreground">Reply-to address</span>
+                      <span className="text-muted-foreground text-xs">Reply-to address</span>
                       <span className="text-muted-foreground">-</span>
                     </div>
 
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-sm text-status-completed">
-                        <span className="text-lg">✓</span>
+                    <div className="space-y-2 pt-4">
+                      <div className="flex items-center gap-2 text-xs text-status-completed">
+                        <div className="w-5 h-5 rounded-full bg-status-completed/20 flex items-center justify-center">
+                          <span className="text-sm">✓</span>
+                        </div>
                         <span>0 email spam tests</span>
                       </div>
-                      <div className="flex items-center gap-2 text-sm text-status-completed">
-                        <span className="text-lg">✓</span>
+                      <div className="flex items-center gap-2 text-xs text-status-completed">
+                        <div className="w-5 h-5 rounded-full bg-status-completed/20 flex items-center justify-center">
+                          <span className="text-sm">✓</span>
+                        </div>
                         <span>0 email client tests</span>
                       </div>
                     </div>
                   </div>
 
                   {/* Right column - Email preview */}
-                  <div className="bg-muted rounded-lg p-6 flex items-center justify-center">
-                    <div className="bg-card rounded shadow-lg max-w-md w-full p-6">
+                  <div className="bg-muted/30 rounded-lg p-8 flex items-start justify-center">
+                    <div className="bg-card rounded-lg shadow-sm border border-border max-w-sm w-full p-6">
                       <div className="space-y-4">
                         <h3 className="text-xl font-bold text-center text-card-foreground">No Sales Yet?</h3>
-                        <div className="w-full h-32 bg-muted rounded flex items-center justify-center">
-                          <span className="text-muted-foreground text-sm">Email content preview</span>
+                        <div className="w-full aspect-video bg-muted/50 rounded overflow-hidden">
+                          <img 
+                            src="/placeholder.svg" 
+                            alt="Customer working" 
+                            className="w-full h-full object-cover"
+                          />
                         </div>
-                        <div className="text-sm text-muted-foreground space-y-2">
+                        <div className="text-xs text-muted-foreground leading-relaxed space-y-2">
                           <p>
-                            No sales occurred during this period primarily due to the customer
-                            engagement and service connection from outreach efforts. The
-                            effectiveness of marketing and customer relationships was not
-                            translating to closed sales, which can point to underlying
-                            customer needs, and entering factors such as market timing and
-                            positioning, the details a lack opportunity...
+                            No sales occurred during this period primarily due to low customer engagement and service connection from outreach efforts. The effectiveness of the product's value proposition may not have fully aligned with customer needs, and external factors such as market timing and competitive positioning. the details a lack opportunity; Steps are being taken to refine messaging, improve outreach, and better align
                           </p>
                         </div>
-                        <div className="flex justify-center">
-                          <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">
-                            Generate SALES today!
+                        <div className="flex justify-center pt-2">
+                          <Button className="bg-primary hover:bg-primary/90 text-primary-foreground text-sm px-6">
+                            Boost your SALES today!
                           </Button>
                         </div>
                       </div>
@@ -312,41 +311,39 @@ const CampaignDetail = () => {
               <CardContent className="p-6">
                 <div className="flex items-start justify-between mb-6">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center">
-                      <span className="text-lg">4</span>
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center border-2 border-muted-foreground/30 bg-muted/30">
+                      <span className="text-sm font-medium text-muted-foreground">4</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xl font-semibold">Advanced</span>
-                    </div>
+                    <h2 className="text-lg font-semibold">Advanced</h2>
                   </div>
-                  <Button variant="outline">Edit</Button>
+                  <Button variant="outline" size="sm">Edit</Button>
                 </div>
 
-                <div className="space-y-3 text-sm">
-                  <div className="grid grid-cols-[200px_1fr] gap-2">
-                    <span className="text-muted-foreground">Notification email address</span>
-                    <span>gaurav.james@messagegears.com (Progress updates disabled)</span>
+                <div className="space-y-2 text-sm">
+                  <div className="grid grid-cols-[220px_1fr] gap-x-4 gap-y-2">
+                    <span className="text-muted-foreground text-xs">Notification email address</span>
+                    <span className="text-sm">gaurav.james@messagegears.com (Progress updates disabled)</span>
 
-                    <span className="text-muted-foreground">Pre-campaign trigger</span>
-                    <span className="text-muted-foreground">-</span>
+                    <span className="text-muted-foreground text-xs">Pre-campaign trigger</span>
+                    <span className="text-muted-foreground text-sm">-</span>
 
-                    <span className="text-muted-foreground">Post-campaign trigger</span>
-                    <span>dw test trigger</span>
+                    <span className="text-muted-foreground text-xs">Post-campaign trigger</span>
+                    <span className="text-sm">dw test trigger</span>
 
-                    <span className="text-muted-foreground">Suppression list</span>
-                    <span className="text-muted-foreground">-</span>
+                    <span className="text-muted-foreground text-xs">Suppression list</span>
+                    <span className="text-muted-foreground text-sm">-</span>
 
-                    <span className="text-muted-foreground">Campaign identifier</span>
-                    <span>GJ_101</span>
+                    <span className="text-muted-foreground text-xs">Campaign identifier</span>
+                    <span className="text-sm">GJ_101</span>
 
-                    <span className="text-muted-foreground">Seedlist</span>
-                    <span className="text-muted-foreground">-</span>
+                    <span className="text-muted-foreground text-xs">Seedlist</span>
+                    <span className="text-muted-foreground text-sm">-</span>
 
-                    <span className="text-muted-foreground">URL append</span>
-                    <span className="text-muted-foreground">-</span>
+                    <span className="text-muted-foreground text-xs">URL append</span>
+                    <span className="text-muted-foreground text-sm">-</span>
 
-                    <span className="text-muted-foreground">Custom properties</span>
-                    <span className="text-muted-foreground">-</span>
+                    <span className="text-muted-foreground text-xs">Custom properties</span>
+                    <span className="text-muted-foreground text-sm">-</span>
                   </div>
                 </div>
               </CardContent>
