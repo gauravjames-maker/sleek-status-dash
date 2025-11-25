@@ -392,26 +392,24 @@ Only return the SQL query, nothing else.`,
               >
                 <ArrowLeft className="h-4 w-4" />
               </Button>
-            <div className="flex-1">
-                <div className="flex items-center gap-3">
-                  <div>
-                    <h1 className="text-2xl font-semibold text-foreground">Create Audience</h1>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Use AI or write SQL queries to define your audience
-                    </p>
-                  </div>
-                  <Badge 
-                    variant="outline" 
-                    className="cursor-pointer hover:bg-accent transition-colors flex items-center gap-1.5 px-3 py-1"
-                    onClick={() => setShowInfoDialog(true)}
-                  >
-                    <Info className="h-3.5 w-3.5" />
-                    How SQL AI Works
-                  </Badge>
-                </div>
+              <div>
+                <h1 className="text-2xl font-semibold text-foreground">Create Audience</h1>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Use AI or write SQL queries to define your audience
+                </p>
               </div>
             </div>
-            <Button onClick={handleSave}>Save Audience</Button>
+            <div className="flex items-center gap-3">
+              <Badge 
+                variant="outline" 
+                className="cursor-pointer hover:bg-accent transition-colors flex items-center gap-1.5 px-3 py-1"
+                onClick={() => setShowInfoDialog(true)}
+              >
+                <Info className="h-3.5 w-3.5" />
+                How SQL AI Works
+              </Badge>
+              <Button onClick={handleSave}>Save Audience</Button>
+            </div>
           </div>
         </header>
 
