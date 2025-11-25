@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { CampaignSidebar } from "@/components/CampaignSidebar";
+import { WhenScheduleDialog } from "@/components/WhenScheduleDialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Edit, MoreVertical, ExternalLink, User, Calendar, Mail, Clock, RefreshCw } from "lucide-react";
@@ -10,6 +12,7 @@ import { Separator } from "@/components/ui/separator";
 const CampaignDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [whenDialogOpen, setWhenDialogOpen] = useState(false);
 
   return (
     <div className="flex h-screen bg-background">
@@ -192,7 +195,7 @@ const CampaignDetail = () => {
                       <h2 className="text-lg font-semibold">When</h2>
                     </div>
                   </div>
-                  <Button variant="outline" size="sm">Add</Button>
+                  <Button variant="outline" size="sm" onClick={() => setWhenDialogOpen(true)}>Add</Button>
                 </div>
 
                 <div className="space-y-3">
@@ -351,6 +354,8 @@ const CampaignDetail = () => {
           </div>
         </main>
       </div>
+      
+      <WhenScheduleDialog open={whenDialogOpen} onOpenChange={setWhenDialogOpen} />
     </div>
   );
 };
