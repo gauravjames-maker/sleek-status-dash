@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Clock, Calendar, RefreshCw } from "lucide-react";
 import { useState } from "react";
 
@@ -11,9 +12,16 @@ interface WhenScheduleDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+// Mock API keys - in a real app, this would come from an API or context
+const availableAPIKeys = [
+  { id: "1", name: "Airflow–Prod" },
+  { id: "2", name: "Dev Testing" },
+];
+
 export const WhenScheduleDialog = ({ open, onOpenChange }: WhenScheduleDialogProps) => {
   const [scheduleType, setScheduleType] = useState("unscheduled");
   const [externalLaunchEnabled, setExternalLaunchEnabled] = useState(false);
+  const [selectedAPIKey, setSelectedAPIKey] = useState("");
 
   const handleSave = () => {
     // Handle save logic here
@@ -39,15 +47,37 @@ export const WhenScheduleDialog = ({ open, onOpenChange }: WhenScheduleDialogPro
         </DialogHeader>
 
         <div className="p-6">
-          <div className="flex items-center justify-between mb-6 pb-4 border-b border-border">
-            <div className="flex flex-col gap-1">
-              <h3 className="text-sm font-medium">External launch via API</h3>
-              <p className="text-xs text-muted-foreground">Enable to launch campaign via API instead of scheduled delivery</p>
+          <div className="mb-6 pb-4 border-b border-border space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-1">
+                <h3 className="text-sm font-medium">External launch via API</h3>
+                <p className="text-xs text-muted-foreground">Enable to launch campaign via API instead of scheduled delivery</p>
+              </div>
+              <Switch
+                checked={externalLaunchEnabled}
+                onCheckedChange={setExternalLaunchEnabled}
+              />
             </div>
-            <Switch
-              checked={externalLaunchEnabled}
-              onCheckedChange={setExternalLaunchEnabled}
-            />
+
+            {externalLaunchEnabled && (
+              <div className="space-y-2">
+                <Label htmlFor="api-key-select" className="text-sm font-medium">
+                  Select API Key
+                </Label>
+                <Select value={selectedAPIKey} onValueChange={setSelectedAPIKey}>
+                  <SelectTrigger id="api-key-select">
+                    <SelectValue placeholder="Choose an API key" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableAPIKeys.map((key) => (
+                      <SelectItem key={key.id} value={key.id}>
+                        {key.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
 
           <h3 className="text-sm font-medium mb-4">Select a delivery type</h3>
