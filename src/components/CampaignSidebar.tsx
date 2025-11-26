@@ -75,8 +75,11 @@ const navItems: SidebarNavItem[] = [
     label: "Admin",
     icon: <Settings className="w-5 h-5" />,
     expandable: true,
-    href: "/admin",
     iconColor: "text-[#8B5CF6]",
+    children: [
+      { label: "System Configuration", href: "/admin/system-configuration", icon: null },
+      { label: "Campaign API", href: "/admin/campaign-api", icon: null },
+    ],
   },
 ];
 
