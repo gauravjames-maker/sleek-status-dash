@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { CampaignSidebar } from "@/components/CampaignSidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -77,10 +78,10 @@ const mockAPIKeys: APIKey[] = [
 ];
 
 const CampaignAPI = () => {
+  const navigate = useNavigate();
   const [apiKeys, setApiKeys] = useState<APIKey[]>(mockAPIKeys);
   const [searchQuery, setSearchQuery] = useState("");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [revokeDialogOpen, setRevokeDialogOpen] = useState(false);
   const [rotateDialogOpen, setRotateDialogOpen] = useState(false);
   const [newKeyDialogOpen, setNewKeyDialogOpen] = useState(false);
@@ -152,7 +153,6 @@ const CampaignAPI = () => {
         description: `Key "${selectedKey.name}" has been revoked`,
       });
       setRevokeDialogOpen(false);
-      setDetailDialogOpen(false);
     }
   };
 
@@ -164,7 +164,6 @@ const CampaignAPI = () => {
       description: `New key generated for "${selectedKey?.name}"`,
     });
     setRotateDialogOpen(false);
-    setDetailDialogOpen(false);
     setNewKeyDialogOpen(true);
   };
 
@@ -272,10 +271,7 @@ const CampaignAPI = () => {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => {
-                            setSelectedKey(key);
-                            setDetailDialogOpen(true);
-                          }}
+                          onClick={() => navigate(`/admin/campaign-api/${key.id}`)}
                         >
                           <Eye className="w-4 h-4" />
                         </Button>
@@ -409,101 +405,6 @@ const CampaignAPI = () => {
 
           <DialogFooter>
             <Button onClick={() => setNewKeyDialogOpen(false)}>I've Saved the Key</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Key Detail Dialog */}
-      <Dialog open={detailDialogOpen} onOpenChange={setDetailDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>{selectedKey?.name}</DialogTitle>
-            <DialogDescription>API Key Details</DialogDescription>
-          </DialogHeader>
-
-          {selectedKey && (
-            <div className="py-4 space-y-4">
-              <div>
-                <Label className="text-muted-foreground">Description</Label>
-                <p className="mt-1">{selectedKey.description || "No description"}</p>
-              </div>
-
-              <div>
-                <Label className="text-muted-foreground">Status</Label>
-                <div className="mt-1">
-                  <Badge variant={selectedKey.status === "active" ? "default" : "secondary"}>
-                    {selectedKey.status === "active" ? "Active" : "Revoked"}
-                  </Badge>
-                </div>
-              </div>
-
-              <div>
-                <Label className="text-muted-foreground">Scopes</Label>
-                <ul className="mt-1 space-y-1">
-                  {selectedKey.scopes.map((scope, idx) => (
-                    <li key={idx} className="text-sm">
-                      • {scope}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-muted-foreground">Created On</Label>
-                  <p className="mt-1 text-sm">{selectedKey.createdOn}</p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">Last Used</Label>
-                  <p className="mt-1 text-sm">{selectedKey.lastUsed}</p>
-                </div>
-              </div>
-
-              <div className="pt-4 border-t border-border">
-                <Label className="text-muted-foreground mb-2 block">Recent Activity</Label>
-                <div className="space-y-2 text-sm text-muted-foreground">
-                  <div className="flex justify-between">
-                    <span>Campaign launched: "Holiday Sale"</span>
-                    <span>2 hours ago</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Schedule updated: "Weekly Newsletter"</span>
-                    <span>5 hours ago</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Campaign launched: "Flash Sale"</span>
-                    <span>1 day ago</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <DialogFooter>
-            {selectedKey?.status === "active" && (
-              <>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setDetailDialogOpen(false);
-                    setRotateDialogOpen(true);
-                  }}
-                >
-                  <RotateCw className="w-4 h-4 mr-2" />
-                  Rotate Key
-                </Button>
-                <Button
-                  variant="destructive"
-                  onClick={() => {
-                    setDetailDialogOpen(false);
-                    setRevokeDialogOpen(true);
-                  }}
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Revoke Key
-                </Button>
-              </>
-            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
