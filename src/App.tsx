@@ -15,6 +15,7 @@ import Templates from "./pages/Templates";
 import TemplateDetail from "./pages/TemplateDetail";
 import Audience from "./pages/Audience";
 import AudienceCreate from "./pages/AudienceCreate";
+import CampaignAPI from "./pages/CampaignAPI";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,6 +39,7 @@ const App = () => (
           <Route path="/people/audience/create" element={<AudienceCreate />} />
           <Route path="/content/templates" element={<Templates />} />
           <Route path="/content/templates/:id" element={<TemplateDetail />} />
+          <Route path="/admin/campaign-api" element={<CampaignAPI />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
