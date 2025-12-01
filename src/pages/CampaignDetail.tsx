@@ -2,9 +2,10 @@ import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { CampaignSidebar } from "@/components/CampaignSidebar";
 import { WhenScheduleDialog } from "@/components/WhenScheduleDialog";
+import { AuditLogDialog } from "@/components/AuditLogDialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Edit, MoreVertical, ExternalLink, User, Calendar, Mail, Clock, RefreshCw } from "lucide-react";
+import { Edit, MoreVertical, ExternalLink, User, Calendar, Mail, Clock, RefreshCw, FileText } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -13,6 +14,7 @@ const CampaignDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [whenDialogOpen, setWhenDialogOpen] = useState(false);
+  const [auditLogOpen, setAuditLogOpen] = useState(false);
 
   return (
     <div className="flex h-screen bg-background">
@@ -51,6 +53,10 @@ const CampaignDetail = () => {
             <div className="flex items-center gap-3">
               <Button variant="ghost" size="icon">
                 <MoreVertical className="h-4 w-4" />
+              </Button>
+              <Button variant="outline" className="gap-2" onClick={() => setAuditLogOpen(true)}>
+                <FileText className="h-4 w-4" />
+                Audit Log
               </Button>
               <Button variant="outline" className="gap-2">
                 <ExternalLink className="h-4 w-4" />
@@ -356,6 +362,7 @@ const CampaignDetail = () => {
       </div>
       
       <WhenScheduleDialog open={whenDialogOpen} onOpenChange={setWhenDialogOpen} />
+      <AuditLogDialog open={auditLogOpen} onOpenChange={setAuditLogOpen} campaignId={id} />
     </div>
   );
 };
