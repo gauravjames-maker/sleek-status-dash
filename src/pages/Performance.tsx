@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { MetricCard } from "@/components/MetricCard";
 import { Button } from "@/components/ui/button";
-import { Info, Calendar, SlidersHorizontal } from "lucide-react";
+import { Info, Calendar, SlidersHorizontal, Sparkles, X } from "lucide-react";
+import { WhatsNewDialog } from "@/components/WhatsNewDialog";
+import { UpgradeNotificationBanner } from "@/components/UpgradeNotificationBanner";
 import {
   LineChart,
   Line,
@@ -34,6 +36,8 @@ const chartData = [
 const Performance = () => {
   const [activeTab, setActiveTab] = useState<"overview" | "notifications">("overview");
   const [timePeriod, setTimePeriod] = useState("last-30-days");
+  const [whatsNewOpen, setWhatsNewOpen] = useState(false);
+  const [showUpgradeBanner, setShowUpgradeBanner] = useState(true);
 
   return (
     <div className="flex-1 flex flex-col bg-background overflow-hidden">
@@ -50,7 +54,17 @@ const Performance = () => {
               <span className="font-medium text-foreground">Performance</span>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-sm flex items-center gap-2"
+              onClick={() => setWhatsNewOpen(true)}
+            >
+              <Sparkles className="w-4 h-4 text-primary" />
+              What's new
+            </Button>
+            <div className="h-4 w-px bg-border" />
             <span className="text-sm text-muted-foreground">Account</span>
             <Button variant="ghost" size="sm" className="text-sm">
               All (Aggregated) ▼
@@ -85,6 +99,23 @@ const Performance = () => {
 
       {/* Main Content */}
       <div className="flex-1 overflow-y-auto p-6">
+        {/* Upgrade Notification Banner */}
+        {showUpgradeBanner && (
+          <UpgradeNotificationBanner
+            version="2025.12"
+            highlights={[
+              "Campaign API - Launch campaigns programmatically",
+              "Enhanced audit logging with before/after views",
+              "AI-powered SQL audience builder",
+            ]}
+            onDismiss={() => setShowUpgradeBanner(false)}
+            onSeeWhatsNew={() => {
+              setShowUpgradeBanner(false);
+              setWhatsNewOpen(true);
+            }}
+            className="mb-6"
+          />
+        )}
         {/* Recipients Metrics Header */}
         <div className="flex items-start justify-between mb-6">
           <div>
@@ -331,6 +362,9 @@ const Performance = () => {
           {/* Add recently viewed content here */}
         </div>
       </div>
+
+      {/* What's New Dialog */}
+      <WhatsNewDialog open={whatsNewOpen} onOpenChange={setWhatsNewOpen} />
     </div>
   );
 };
