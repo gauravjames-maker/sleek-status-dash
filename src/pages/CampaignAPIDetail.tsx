@@ -9,7 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CampaignSidebar } from "@/components/CampaignSidebar";
-import { ArrowLeft, Pause, Play, RotateCcw, Calendar, AlertCircle, CheckCircle, XCircle } from "lucide-react";
+import { AuditLogDialog } from "@/components/AuditLogDialog";
+import { ArrowLeft, Pause, Play, RotateCcw, Calendar, AlertCircle, CheckCircle, XCircle, FileText } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useState } from "react";
 
@@ -112,6 +113,7 @@ export default function CampaignAPIDetail() {
   const [filterAction, setFilterAction] = useState("all");
   const [rescheduleDate, setRescheduleDate] = useState("");
   const [rescheduleTime, setRescheduleTime] = useState("");
+  const [auditLogDialogOpen, setAuditLogDialogOpen] = useState(false);
 
   const handleGlobalPause = () => {
     console.log("Pausing all campaigns");
@@ -161,14 +163,22 @@ export default function CampaignAPIDetail() {
           <div className="p-8">
             {/* Header */}
             <div className="mb-6">
-              <Button
-                variant="ghost"
-                onClick={() => navigate("/admin/campaign-api")}
-                className="mb-4"
-              >
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to API Keys
-              </Button>
+              <div className="flex items-center justify-between mb-4">
+                <Button
+                  variant="ghost"
+                  onClick={() => navigate("/admin/campaign-api")}
+                >
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Back to API Keys
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setAuditLogDialogOpen(true)}
+                >
+                  <FileText className="mr-2 h-4 w-4" />
+                  Audit Log
+                </Button>
+              </div>
               <div className="flex items-center justify-between">
                 <div>
                   <h1 className="text-3xl font-bold">{mockAPIKeyDetail.name}</h1>
@@ -364,14 +374,14 @@ export default function CampaignAPIDetail() {
               </CardContent>
             </Card>
 
-            {/* History & Audit Log */}
+            {/* API Activity Log */}
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle>History & Audit Log</CardTitle>
+                    <CardTitle>API Activity Log</CardTitle>
                     <CardDescription>
-                      Chronological log of all API actions performed with this key
+                      Recent API actions performed with this key
                     </CardDescription>
                   </div>
                   <Select value={filterAction} onValueChange={setFilterAction}>
@@ -528,6 +538,12 @@ export default function CampaignAPIDetail() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Audit Log Dialog */}
+      <AuditLogDialog
+        open={auditLogDialogOpen}
+        onOpenChange={setAuditLogDialogOpen}
+      />
     </div>
   );
 }
