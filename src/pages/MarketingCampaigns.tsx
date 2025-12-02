@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { CampaignSidebar } from "@/components/CampaignSidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Mail, List, Grid, MoreVertical, Edit, RefreshCw } from "lucide-react";
+import { Search, Mail, List, Grid, MoreVertical, Edit, RefreshCw, CaseSensitive } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Table,
@@ -15,6 +15,17 @@ import {
 } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface Campaign {
   id: string;
@@ -112,10 +123,21 @@ const MarketingCampaigns = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [showArchived, setShowArchived] = useState(false);
+  const [caseSensitive, setCaseSensitive] = useState(false);
 
   const handleRowClick = (campaignId: string) => {
     navigate(`/campaigns/marketing/overview/${campaignId}`);
   };
+
+  const filteredCampaigns = mockCampaigns.filter((campaign) => {
+    if (!searchQuery) return true;
+    const query = caseSensitive ? searchQuery : searchQuery.toLowerCase();
+    const name = caseSensitive ? campaign.name : campaign.name.toLowerCase();
+    const description = caseSensitive 
+      ? (campaign.description || "") 
+      : (campaign.description || "").toLowerCase();
+    return name.includes(query) || description.includes(query);
+  });
 
   return (
     <div className="flex h-screen bg-background">
@@ -146,14 +168,58 @@ const MarketingCampaigns = () => {
         {/* Filters */}
         <div className="border-b border-border bg-card px-6 py-4">
           <div className="flex items-center justify-between">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
-              />
+            <div className="relative flex-1 max-w-md flex items-center gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9 pr-10"
+                />
+                <Popover>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className={`absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 ${
+                              caseSensitive ? "bg-primary/10 text-primary" : "text-muted-foreground"
+                            }`}
+                          >
+                            <CaseSensitive className="h-4 w-4" />
+                          </Button>
+                        </PopoverTrigger>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Search options</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <PopoverContent className="w-56 p-3 bg-popover border border-border" align="end">
+                    <div className="space-y-3">
+                      <h4 className="font-medium text-sm">Search Options</h4>
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="case-sensitive" className="text-sm font-normal cursor-pointer">
+                          Case sensitive
+                        </Label>
+                        <Switch
+                          id="case-sensitive"
+                          checked={caseSensitive}
+                          onCheckedChange={setCaseSensitive}
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {caseSensitive 
+                          ? "Matching exact letter case" 
+                          : "Ignoring letter case"}
+                      </p>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
@@ -191,7 +257,7 @@ const MarketingCampaigns = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {mockCampaigns.map((campaign) => (
+              {filteredCampaigns.map((campaign) => (
                 <TableRow
                   key={campaign.id}
                   className="cursor-pointer hover:bg-muted/50"
