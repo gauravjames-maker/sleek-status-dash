@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Play, Code, Sparkles, Check, ChevronsUpDown, Search, ArrowUpDown, X, Info, Save, Trash2 } from "lucide-react";
+import { ArrowLeft, Play, Code, Sparkles, Check, ChevronsUpDown, Search, ArrowUpDown, X, Info, Save, Trash2, AlertTriangle } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -183,6 +183,12 @@ const AudienceCreate = () => {
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [showInfoDialog, setShowInfoDialog] = useState(false);
   const [savedPreferences, setSavedPreferences] = useState(examplePrompts);
+  const [sqlError, setSqlError] = useState<{
+    message: string;
+    line: number;
+    column?: number;
+    suggestion?: string;
+  } | null>(null);
 
   const generateSQLFromNaturalLanguage = async () => {
     const token = sessionStorage.getItem("gpt_token");
@@ -243,10 +249,22 @@ Only return the SQL query, nothing else.`,
       
       setSqlQuery(cleanSQL);
       
-      toast({
-        title: "SQL Generated",
-        description: "Your query has been generated successfully.",
-      });
+      // Check for potential issues in the generated SQL
+      const detectedError = detectSQLIssues(cleanSQL);
+      setSqlError(detectedError);
+      
+      if (detectedError) {
+        toast({
+          title: "SQL Generated with Warning",
+          description: "Review the highlighted issue in your query.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "SQL Generated",
+          description: "Your query has been generated successfully.",
+        });
+      }
     } catch (error) {
       console.error("Error generating SQL:", error);
       toast({
@@ -325,6 +343,143 @@ Only return the SQL query, nothing else.`,
 
   const useExamplePrompt = (prompt: string) => {
     setNaturalLanguageQuery(prompt);
+  };
+
+  // Function to detect common SQL issues
+  const detectSQLIssues = (sql: string): typeof sqlError => {
+    const lines = sql.split('\n');
+    
+    // Check for non-existent table references
+    const tablePattern = /FROM\s+(\w+)|JOIN\s+(\w+)/gi;
+    let match;
+    while ((match = tablePattern.exec(sql)) !== null) {
+      const tableName = match[1] || match[2];
+      const availableTables = mockTables.map(t => t.name);
+      if (tableName && !availableTables.includes(tableName.toLowerCase())) {
+        const lineIndex = sql.substring(0, match.index).split('\n').length;
+        return {
+          message: `Table "${tableName}" does not exist in the selected schema`,
+          line: lineIndex,
+          suggestion: `Available tables: ${selectedTables.join(', ') || availableTables.join(', ')}`,
+        };
+      }
+    }
+    
+    // Check for non-existent column references
+    const columnPattern = /SELECT\s+(.+?)\s+FROM/is;
+    const columnMatch = columnPattern.exec(sql);
+    if (columnMatch) {
+      const selectClause = columnMatch[1];
+      if (selectClause.includes('undefined') || selectClause.includes('null_column')) {
+        return {
+          message: `Invalid column reference in SELECT clause`,
+          line: 1,
+          suggestion: `Check column names against the selected table schema`,
+        };
+      }
+    }
+    
+    // Check for syntax issues
+    if (sql.includes('SELEC ') || sql.includes('FORM ') || sql.includes('WHER ')) {
+      const typos = ['SELEC ', 'FORM ', 'WHER '];
+      for (const typo of typos) {
+        if (sql.includes(typo)) {
+          const lineIndex = sql.substring(0, sql.indexOf(typo)).split('\n').length;
+          return {
+            message: `Possible typo: "${typo.trim()}" - did you mean "${typo.trim()}T" or another keyword?`,
+            line: lineIndex,
+            suggestion: `SQL keywords should be: SELECT, FROM, WHERE`,
+          };
+        }
+      }
+    }
+    
+    // Check for ambiguous column references in JOINs
+    if (sql.toUpperCase().includes('JOIN') && !sql.includes('.')) {
+      const hasMultipleTables = (sql.match(/FROM|JOIN/gi) || []).length > 1;
+      if (hasMultipleTables) {
+        return {
+          message: `Ambiguous column references detected - columns should be prefixed with table aliases when using JOINs`,
+          line: 1,
+          suggestion: `Use table aliases like: users.id, orders.user_id`,
+        };
+      }
+    }
+    
+    return null;
+  };
+
+  // Simulate an example with error for demo
+  const simulateErrorExample = () => {
+    const errorSQL = `SELECT id, email, total_purchases, last_login_date
+FROM customer_profiles
+WHERE status = 'active'
+  AND total_purchases > 500
+ORDER BY last_login_date DESC`;
+    
+    setSqlQuery(errorSQL);
+    setSqlError({
+      message: `Table "customer_profiles" does not exist in the selected schema`,
+      line: 2,
+      suggestion: `Available tables: users, orders, products, subscriptions. Did you mean "customers" from the analytics schema?`,
+    });
+    
+    toast({
+      title: "Example: SQL with Issue",
+      description: "This demonstrates how errors are highlighted.",
+    });
+  };
+
+  // Render SQL with error highlighting
+  const renderSQLWithHighlight = () => {
+    if (!sqlError || !sqlQuery) return null;
+    
+    const lines = sqlQuery.split('\n');
+    
+    return (
+      <div className="mt-2 font-mono text-sm">
+        <div className="rounded-lg border border-border overflow-hidden">
+          {lines.map((line, index) => {
+            const lineNum = index + 1;
+            const isErrorLine = lineNum === sqlError.line;
+            
+            return (
+              <div
+                key={index}
+                className={cn(
+                  "flex",
+                  isErrorLine && "bg-destructive/10 border-l-2 border-l-destructive"
+                )}
+              >
+                <span className="w-10 px-2 py-1 text-right text-muted-foreground bg-muted/50 select-none border-r border-border">
+                  {lineNum}
+                </span>
+                <pre className="flex-1 px-3 py-1 overflow-x-auto">
+                  <code className={cn(isErrorLine && "text-destructive")}>{line}</code>
+                </pre>
+              </div>
+            );
+          })}
+        </div>
+        
+        {/* Error message */}
+        <div className="mt-3 p-3 rounded-lg bg-destructive/10 border border-destructive/30">
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-destructive">
+                Line {sqlError.line}: {sqlError.message}
+              </p>
+              {sqlError.suggestion && (
+                <p className="text-xs text-muted-foreground">
+                  💡 {sqlError.suggestion}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   const savePreference = () => {
@@ -661,6 +816,18 @@ Only return the SQL query, nothing else.`,
 
                   <div className="flex gap-2 mt-4">
                     <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={simulateErrorExample}
+                      className="text-xs text-muted-foreground"
+                    >
+                      <AlertTriangle className="h-3 w-3 mr-1" />
+                      Show Error Example
+                    </Button>
+                  </div>
+
+                  <div className="flex gap-2 mt-2">
+                    <Button
                       onClick={generateSQLFromNaturalLanguage}
                       disabled={isGenerating}
                       className="flex-1"
@@ -682,12 +849,42 @@ Only return the SQL query, nothing else.`,
 
                 {sqlQuery && (
                   <div className="bg-card rounded-lg border border-border p-6 space-y-4">
-                    <Label>Generated SQL Query</Label>
-                    <Textarea
-                      value={sqlQuery}
-                      onChange={(e) => setSqlQuery(e.target.value)}
-                      className="mt-2 font-mono text-sm min-h-[120px]"
-                    />
+                    <div className="flex items-center justify-between">
+                      <Label>Generated SQL Query</Label>
+                      {sqlError && (
+                        <Badge variant="destructive" className="gap-1">
+                          <AlertTriangle className="h-3 w-3" />
+                          Issue Detected
+                        </Badge>
+                      )}
+                    </div>
+                    
+                    {sqlError ? (
+                      renderSQLWithHighlight()
+                    ) : (
+                      <Textarea
+                        value={sqlQuery}
+                        onChange={(e) => {
+                          setSqlQuery(e.target.value);
+                          setSqlError(null);
+                        }}
+                        className="mt-2 font-mono text-sm min-h-[120px]"
+                      />
+                    )}
+                    
+                    {sqlError && (
+                      <Textarea
+                        value={sqlQuery}
+                        onChange={(e) => {
+                          setSqlQuery(e.target.value);
+                          const newError = detectSQLIssues(e.target.value);
+                          setSqlError(newError);
+                        }}
+                        placeholder="Edit the SQL to fix the issue..."
+                        className="font-mono text-sm min-h-[100px]"
+                      />
+                    )}
+                    
                     <Button onClick={executeQuery} variant="outline" className="w-full">
                       <Play className="h-4 w-4 mr-2" />
                       Preview Results
