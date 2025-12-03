@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Play, Code, Sparkles, Check, ChevronsUpDown, Search, ArrowUpDown, X, Info, Save, Trash2, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Play, Code, Sparkles, Check, ChevronsUpDown, Search, ArrowUpDown, X, Info, Save, Trash2, AlertTriangle, Database } from "lucide-react";
+import DatabaseSchemaViewer, { databaseSchema, getAvailableTables } from "@/components/DatabaseSchemaViewer";
 import {
   Dialog,
   DialogContent,
@@ -345,45 +346,50 @@ Only return the SQL query, nothing else.`,
   const useExamplePrompt = (prompt: string, hasError?: boolean) => {
     setNaturalLanguageQuery(prompt);
     
-    // If this is an error example, auto-generate SQL with error
+    // If this is an error example, auto-generate SQL with error using actual schema
     if (hasError) {
-      const errorSQL = `SELECT u.id, u.email, u.first_name, u.last_name
+      // This SQL references "user_activity" which doesn't exist in our schema
+      // Available tables: users, orders, subscriptions, products, customer_metrics, payment_methods, addresses
+      const errorSQL = `SELECT u.id, u.email, u.first_name, u.last_name, cm.customer_segment
 FROM user_activity ua
 JOIN users u ON u.id = ua.user_id
+JOIN customer_metrics cm ON u.id = cm.user_id
 WHERE ua.last_order_date BETWEEN DATEADD(month, -6, GETDATE()) AND DATEADD(day, -60, GETDATE())
   AND ua.order_count > 0
-ORDER BY ua.last_order_date DESC`;
+ORDER BY cm.last_order_date DESC`;
+      
+      const availableTables = getAvailableTables();
       
       setSqlQuery(errorSQL);
       setSqlError({
         message: `Table "user_activity" does not exist in the selected schema`,
         line: 2,
-        suggestion: `Available tables: users, orders, products, subscriptions. Consider joining "users" with "orders" table instead.`,
+        suggestion: `Available tables: ${availableTables.join(', ')}. For at-risk customers, use "customer_metrics" table which has last_order_date and customer_segment columns.`,
       });
       
       toast({
         title: "Example: At-Risk Customers Query",
-        description: "This query has an issue - the referenced table doesn't exist.",
+        description: "This query has an issue - the referenced table doesn't exist. Check the Database Schema for valid tables.",
       });
     }
   };
 
-  // Function to detect common SQL issues
+  // Function to detect common SQL issues using actual database schema
   const detectSQLIssues = (sql: string): typeof sqlError => {
     const lines = sql.split('\n');
+    const availableTables = getAvailableTables();
     
     // Check for non-existent table references
     const tablePattern = /FROM\s+(\w+)|JOIN\s+(\w+)/gi;
     let match;
     while ((match = tablePattern.exec(sql)) !== null) {
       const tableName = match[1] || match[2];
-      const availableTables = mockTables.map(t => t.name);
       if (tableName && !availableTables.includes(tableName.toLowerCase())) {
         const lineIndex = sql.substring(0, match.index).split('\n').length;
         return {
           message: `Table "${tableName}" does not exist in the selected schema`,
           line: lineIndex,
-          suggestion: `Available tables: ${selectedTables.join(', ') || availableTables.join(', ')}`,
+          suggestion: `Available tables: ${availableTables.join(', ')}. Click "View Database Schema" to see all tables and columns.`,
         };
       }
     }
@@ -847,6 +853,14 @@ ORDER BY last_login_date DESC`;
                       <AlertTriangle className="h-3 w-3 mr-1" />
                       Show Error Example
                     </Button>
+                    <DatabaseSchemaViewer
+                      trigger={
+                        <Button variant="ghost" size="sm" className="text-xs text-muted-foreground">
+                          <Database className="h-3 w-3 mr-1" />
+                          View Database Schema
+                        </Button>
+                      }
+                    />
                   </div>
 
                   <div className="flex gap-2 mt-2">
