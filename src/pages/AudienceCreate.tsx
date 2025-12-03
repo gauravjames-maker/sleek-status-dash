@@ -99,6 +99,7 @@ const examplePrompts = [
   {
     label: "At-risk customers",
     prompt: "Show users who had orders in the last 6 months but none in the last 60 days",
+    hasError: true,
   },
   {
     label: "Premium segment",
@@ -341,8 +342,30 @@ Only return the SQL query, nothing else.`,
     }
   };
 
-  const useExamplePrompt = (prompt: string) => {
+  const useExamplePrompt = (prompt: string, hasError?: boolean) => {
     setNaturalLanguageQuery(prompt);
+    
+    // If this is an error example, auto-generate SQL with error
+    if (hasError) {
+      const errorSQL = `SELECT u.id, u.email, u.first_name, u.last_name
+FROM user_activity ua
+JOIN users u ON u.id = ua.user_id
+WHERE ua.last_order_date BETWEEN DATEADD(month, -6, GETDATE()) AND DATEADD(day, -60, GETDATE())
+  AND ua.order_count > 0
+ORDER BY ua.last_order_date DESC`;
+      
+      setSqlQuery(errorSQL);
+      setSqlError({
+        message: `Table "user_activity" does not exist in the selected schema`,
+        line: 2,
+        suggestion: `Available tables: users, orders, products, subscriptions. Consider joining "users" with "orders" table instead.`,
+      });
+      
+      toast({
+        title: "Example: At-Risk Customers Query",
+        description: "This query has an issue - the referenced table doesn't exist.",
+      });
+    }
   };
 
   // Function to detect common SQL issues
@@ -793,7 +816,7 @@ ORDER BY last_login_date DESC`;
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => useExamplePrompt(example.prompt)}
+                            onClick={() => useExamplePrompt(example.prompt, (example as any).hasError)}
                             className="text-xs pr-8"
                           >
                             {example.label}
