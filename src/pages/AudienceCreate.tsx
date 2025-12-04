@@ -280,11 +280,11 @@ Only return the SQL query, nothing else.`,
     }
   };
 
-  // Parse SQL to extract tables and columns
+  // Parse SQL to extract tables, columns, and WHERE conditions
   const parseSQLQuery = (sql: string) => {
-    const upperSQL = sql.toUpperCase();
     const tables: string[] = [];
     const columns: string[] = [];
+    const whereConditions: Array<{ column: string; operator: string; value: any }> = [];
     
     // Extract table names from FROM and JOIN clauses
     const tablePattern = /(?:FROM|JOIN)\s+(\w+)(?:\s+(?:AS\s+)?(\w+))?/gi;
@@ -297,28 +297,118 @@ Only return the SQL query, nothing else.`,
     const selectMatch = sql.match(/SELECT\s+(.+?)\s+FROM/is);
     if (selectMatch) {
       const selectClause = selectMatch[1];
-      if (selectClause.trim() === '*') {
-        // Select all columns from first table
-      } else {
+      if (selectClause.trim() !== '*') {
         const columnParts = selectClause.split(',');
         columnParts.forEach(part => {
           const cleaned = part.trim()
             .replace(/.*\.\s*/, '') // Remove table alias prefix
             .replace(/\s+AS\s+\w+/i, '') // Remove AS alias
             .trim();
-          if (cleaned && !cleaned.includes('(')) { // Skip functions
+          if (cleaned && !cleaned.includes('(')) {
             columns.push(cleaned.toLowerCase());
           }
         });
       }
     }
     
-    return { tables, columns };
+    // Parse WHERE conditions
+    const whereMatch = sql.match(/WHERE\s+(.+?)(?:ORDER|GROUP|LIMIT|$)/is);
+    if (whereMatch) {
+      const whereClause = whereMatch[1];
+      
+      // Parse common conditions
+      const conditionPatterns = [
+        // column = 'value' or column = value
+        /(\w+(?:\.\w+)?)\s*=\s*'([^']+)'/gi,
+        /(\w+(?:\.\w+)?)\s*=\s*(\d+)/gi,
+        // column > value, column < value, etc.
+        /(\w+(?:\.\w+)?)\s*(>|<|>=|<=)\s*(\d+)/gi,
+        // column IN ('value1', 'value2')
+        /(\w+(?:\.\w+)?)\s+IN\s*\(([^)]+)\)/gi,
+        // column IS NULL / IS NOT NULL
+        /(\w+(?:\.\w+)?)\s+IS\s+(NOT\s+)?NULL/gi,
+      ];
+      
+      // Simple equality conditions
+      const eqPattern = /(\w+(?:\.\w+)?)\s*=\s*'([^']+)'/gi;
+      let eqMatch;
+      while ((eqMatch = eqPattern.exec(whereClause)) !== null) {
+        whereConditions.push({
+          column: eqMatch[1].replace(/.*\./, '').toLowerCase(),
+          operator: '=',
+          value: eqMatch[2],
+        });
+      }
+      
+      // Numeric comparisons
+      const numPattern = /(\w+(?:\.\w+)?)\s*(>|<|>=|<=|=)\s*(\d+)/gi;
+      let numMatch;
+      while ((numMatch = numPattern.exec(whereClause)) !== null) {
+        whereConditions.push({
+          column: numMatch[1].replace(/.*\./, '').toLowerCase(),
+          operator: numMatch[2],
+          value: parseFloat(numMatch[3]),
+        });
+      }
+      
+      // Status checks
+      if (whereClause.toLowerCase().includes("status = 'active'")) {
+        whereConditions.push({ column: 'status', operator: '=', value: 'active' });
+      }
+      if (whereClause.toLowerCase().includes("status = 'inactive'")) {
+        whereConditions.push({ column: 'status', operator: '=', value: 'inactive' });
+      }
+      
+      // Segment checks
+      const segmentMatch = whereClause.match(/customer_segment\s*=\s*'(\w+)'/i);
+      if (segmentMatch) {
+        whereConditions.push({ column: 'customer_segment', operator: '=', value: segmentMatch[1] });
+      }
+      
+      // Plan type checks
+      const planMatch = whereClause.match(/plan_type\s+IN\s*\(([^)]+)\)/i);
+      if (planMatch) {
+        const plans = planMatch[1].split(',').map(p => p.trim().replace(/'/g, ''));
+        whereConditions.push({ column: 'plan_type', operator: 'IN', value: plans });
+      }
+    }
+    
+    return { tables, columns, whereConditions };
+  };
+
+  // Apply WHERE conditions to filter data
+  const applyWhereConditions = (data: any[], conditions: Array<{ column: string; operator: string; value: any }>) => {
+    if (conditions.length === 0) return data;
+    
+    return data.filter(row => {
+      return conditions.every(condition => {
+        const rowValue = row[condition.column];
+        if (rowValue === undefined) return true; // Skip if column not found
+        
+        switch (condition.operator) {
+          case '=':
+            return String(rowValue).toLowerCase() === String(condition.value).toLowerCase();
+          case '>':
+            return parseFloat(rowValue) > condition.value;
+          case '<':
+            return parseFloat(rowValue) < condition.value;
+          case '>=':
+            return parseFloat(rowValue) >= condition.value;
+          case '<=':
+            return parseFloat(rowValue) <= condition.value;
+          case 'IN':
+            return Array.isArray(condition.value) && 
+              condition.value.some(v => String(rowValue).toLowerCase() === String(v).toLowerCase());
+          default:
+            return true;
+        }
+      });
+    });
   };
 
   // Generate preview data based on SQL query and database schema
   const generatePreviewData = (sql: string) => {
-    const { tables, columns } = parseSQLQuery(sql);
+    const { tables, columns, whereConditions } = parseSQLQuery(sql);
     
     if (tables.length === 0) {
       return [];
@@ -330,17 +420,18 @@ Only return the SQL query, nothing else.`,
     ).filter(Boolean);
     
     if (schemaTables.length === 0) {
-      // Return empty if no valid tables found
       return [];
     }
+    
+    let resultData: any[] = [];
     
     // For JOINs, combine data from multiple tables
     if (schemaTables.length > 1) {
       const primaryTable = schemaTables[0];
-      const joinedData = primaryTable?.sampleData.map((primaryRow, index) => {
+      resultData = primaryTable?.sampleData.map((primaryRow: any, index: number) => {
         const combinedRow: Record<string, any> = { ...primaryRow };
         
-        // Add data from joined tables (using user_id as join key)
+        // Add data from joined tables
         schemaTables.slice(1).forEach(joinedTable => {
           if (joinedTable) {
             const joinedRow = joinedTable.sampleData.find(
@@ -348,10 +439,9 @@ Only return the SQL query, nothing else.`,
             ) || joinedTable.sampleData[index % joinedTable.sampleData.length];
             
             if (joinedRow) {
-              // Prefix joined columns with table name to avoid conflicts
               Object.entries(joinedRow).forEach(([key, value]) => {
                 if (key !== 'user_id' && key !== 'id') {
-                  combinedRow[`${joinedTable.name}_${key}`] = value;
+                  combinedRow[key] = value;
                 } else if (!combinedRow[key]) {
                   combinedRow[key] = value;
                 }
@@ -362,48 +452,33 @@ Only return the SQL query, nothing else.`,
         
         return combinedRow;
       }) || [];
-      
-      // Filter to selected columns if specified
-      if (columns.length > 0) {
-        return joinedData.map(row => {
-          const filteredRow: Record<string, any> = {};
-          columns.forEach(col => {
-            // Check for exact match or partial match
-            const matchingKey = Object.keys(row).find(
-              key => key.toLowerCase() === col || key.toLowerCase().endsWith(`_${col}`)
-            );
-            if (matchingKey) {
-              filteredRow[col] = row[matchingKey];
-            } else if (row[col] !== undefined) {
-              filteredRow[col] = row[col];
-            }
-          });
-          // Include all columns if no specific matches found
-          return Object.keys(filteredRow).length > 0 ? filteredRow : row;
-        });
-      }
-      
-      return joinedData;
+    } else {
+      // Single table
+      resultData = [...(schemaTables[0]?.sampleData || [])];
     }
     
-    // Single table query
-    const tableData = schemaTables[0]?.sampleData || [];
+    // Apply WHERE conditions to filter data
+    resultData = applyWhereConditions(resultData, whereConditions);
     
     // Filter to selected columns if specified
-    if (columns.length > 0 && columns[0] !== '*') {
-      return tableData.map((row: any) => {
+    if (columns.length > 0) {
+      resultData = resultData.map(row => {
         const filteredRow: Record<string, any> = {};
         columns.forEach(col => {
-          if (row[col] !== undefined) {
+          const matchingKey = Object.keys(row).find(
+            key => key.toLowerCase() === col || key.toLowerCase().endsWith(`_${col}`)
+          );
+          if (matchingKey) {
+            filteredRow[col] = row[matchingKey];
+          } else if (row[col] !== undefined) {
             filteredRow[col] = row[col];
           }
         });
-        // Return full row if no columns matched
         return Object.keys(filteredRow).length > 0 ? filteredRow : row;
       });
     }
     
-    return tableData;
+    return resultData;
   };
 
   const executeQuery = () => {
