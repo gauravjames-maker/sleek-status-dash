@@ -112,57 +112,6 @@ const examplePrompts = [
   },
 ];
 
-const mockData = {
-  users: [
-    { 
-      id: 1, 
-      first_name: "John",
-      last_name: "Anderson", 
-      email: "john.anderson@example.com", 
-      age: 34,
-      total_amount: 1245.67,
-      order_count: 8,
-      subscription_plan: "Premium",
-      customer_segment: "VIP",
-      loyalty_points: 2450,
-      created_at: "2024-01-01", 
-      status: "active" 
-    },
-    { 
-      id: 2, 
-      first_name: "Sarah",
-      last_name: "Mitchell", 
-      email: "sarah.mitchell@example.com", 
-      age: 28,
-      total_amount: 892.34,
-      order_count: 5,
-      subscription_plan: "Standard",
-      customer_segment: "Regular",
-      loyalty_points: 1680,
-      created_at: "2024-01-02", 
-      status: "active" 
-    },
-    { 
-      id: 3, 
-      first_name: "Michael",
-      last_name: "Chen", 
-      email: "michael.chen@example.com", 
-      age: 42,
-      total_amount: 2567.89,
-      order_count: 15,
-      subscription_plan: "Enterprise",
-      customer_segment: "VIP",
-      loyalty_points: 5890,
-      created_at: "2024-01-03", 
-      status: "active" 
-    },
-  ],
-  orders: [
-    { id: 1, user_id: 1, amount: 99.99, status: "completed" },
-    { id: 2, user_id: 2, amount: 149.99, status: "completed" },
-    { id: 3, user_id: 1, amount: 79.99, status: "pending" },
-  ],
-};
 
 const AudienceCreate = () => {
   const navigate = useNavigate();
@@ -279,6 +228,132 @@ Only return the SQL query, nothing else.`,
     }
   };
 
+  // Parse SQL to extract tables and columns
+  const parseSQLQuery = (sql: string) => {
+    const upperSQL = sql.toUpperCase();
+    const tables: string[] = [];
+    const columns: string[] = [];
+    
+    // Extract table names from FROM and JOIN clauses
+    const tablePattern = /(?:FROM|JOIN)\s+(\w+)(?:\s+(?:AS\s+)?(\w+))?/gi;
+    let match;
+    while ((match = tablePattern.exec(sql)) !== null) {
+      tables.push(match[1].toLowerCase());
+    }
+    
+    // Extract column names from SELECT clause
+    const selectMatch = sql.match(/SELECT\s+(.+?)\s+FROM/is);
+    if (selectMatch) {
+      const selectClause = selectMatch[1];
+      if (selectClause.trim() === '*') {
+        // Select all columns from first table
+      } else {
+        const columnParts = selectClause.split(',');
+        columnParts.forEach(part => {
+          const cleaned = part.trim()
+            .replace(/.*\.\s*/, '') // Remove table alias prefix
+            .replace(/\s+AS\s+\w+/i, '') // Remove AS alias
+            .trim();
+          if (cleaned && !cleaned.includes('(')) { // Skip functions
+            columns.push(cleaned.toLowerCase());
+          }
+        });
+      }
+    }
+    
+    return { tables, columns };
+  };
+
+  // Generate preview data based on SQL query and database schema
+  const generatePreviewData = (sql: string) => {
+    const { tables, columns } = parseSQLQuery(sql);
+    
+    if (tables.length === 0) {
+      return [];
+    }
+    
+    // Find tables in schema
+    const schemaTables = tables.map(tableName => 
+      databaseSchema.tables.find(t => t.name.toLowerCase() === tableName)
+    ).filter(Boolean);
+    
+    if (schemaTables.length === 0) {
+      // Return empty if no valid tables found
+      return [];
+    }
+    
+    // For JOINs, combine data from multiple tables
+    if (schemaTables.length > 1) {
+      const primaryTable = schemaTables[0];
+      const joinedData = primaryTable?.sampleData.map((primaryRow, index) => {
+        const combinedRow: Record<string, any> = { ...primaryRow };
+        
+        // Add data from joined tables (using user_id as join key)
+        schemaTables.slice(1).forEach(joinedTable => {
+          if (joinedTable) {
+            const joinedRow = joinedTable.sampleData.find(
+              (jr: any) => jr.user_id === primaryRow.id || jr.user_id === primaryRow.user_id || jr.id === primaryRow.user_id
+            ) || joinedTable.sampleData[index % joinedTable.sampleData.length];
+            
+            if (joinedRow) {
+              // Prefix joined columns with table name to avoid conflicts
+              Object.entries(joinedRow).forEach(([key, value]) => {
+                if (key !== 'user_id' && key !== 'id') {
+                  combinedRow[`${joinedTable.name}_${key}`] = value;
+                } else if (!combinedRow[key]) {
+                  combinedRow[key] = value;
+                }
+              });
+            }
+          }
+        });
+        
+        return combinedRow;
+      }) || [];
+      
+      // Filter to selected columns if specified
+      if (columns.length > 0) {
+        return joinedData.map(row => {
+          const filteredRow: Record<string, any> = {};
+          columns.forEach(col => {
+            // Check for exact match or partial match
+            const matchingKey = Object.keys(row).find(
+              key => key.toLowerCase() === col || key.toLowerCase().endsWith(`_${col}`)
+            );
+            if (matchingKey) {
+              filteredRow[col] = row[matchingKey];
+            } else if (row[col] !== undefined) {
+              filteredRow[col] = row[col];
+            }
+          });
+          // Include all columns if no specific matches found
+          return Object.keys(filteredRow).length > 0 ? filteredRow : row;
+        });
+      }
+      
+      return joinedData;
+    }
+    
+    // Single table query
+    const tableData = schemaTables[0]?.sampleData || [];
+    
+    // Filter to selected columns if specified
+    if (columns.length > 0 && columns[0] !== '*') {
+      return tableData.map((row: any) => {
+        const filteredRow: Record<string, any> = {};
+        columns.forEach(col => {
+          if (row[col] !== undefined) {
+            filteredRow[col] = row[col];
+          }
+        });
+        // Return full row if no columns matched
+        return Object.keys(filteredRow).length > 0 ? filteredRow : row;
+      });
+    }
+    
+    return tableData;
+  };
+
   const executeQuery = () => {
     if (!sqlQuery) {
       toast({
@@ -289,17 +364,16 @@ Only return the SQL query, nothing else.`,
       return;
     }
 
-    // Mock execution - in real app this would call backend
-    const firstTable = selectedTables[0] || "users";
-    const mockResult = mockData[firstTable as keyof typeof mockData] || [];
-    setPreviewData(mockResult);
+    // Generate preview data based on actual SQL query and schema
+    const result = generatePreviewData(sqlQuery);
+    setPreviewData(result);
     setShowPreviewDialog(true);
     setSearchTerm("");
     setSortColumn("");
     
     toast({
       title: "Query Executed",
-      description: `Found ${mockResult.length} results.`,
+      description: result.length > 0 ? `Found ${result.length} results.` : "No results found. Check if the table exists in the schema.",
     });
   };
 
