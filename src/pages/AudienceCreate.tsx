@@ -544,34 +544,15 @@ Only return the SQL query, nothing else.`,
     }
   };
 
-  const useExamplePrompt = (prompt: string, hasError?: boolean, sql?: string) => {
+  const useExamplePrompt = (prompt: string) => {
     setNaturalLanguageQuery(prompt);
     setSqlError(null);
+    setSqlQuery(""); // Clear any existing SQL - user needs to click "Generate SQL"
     
-    // If SQL is provided, use it directly
-    if (sql) {
-      setSqlQuery(sql);
-      
-      // If this is an error example, set the error state
-      if (hasError) {
-        const availableTables = getAvailableTables();
-        setSqlError({
-          message: `Table "user_activity" does not exist in the selected schema`,
-          line: 2,
-          suggestion: `Available tables: ${availableTables.join(', ')}. For at-risk customers, use "customer_metrics" table which has last_order_date and customer_segment columns.`,
-        });
-        
-        toast({
-          title: "Example: At-Risk Customers Query",
-          description: "This query has an issue - the referenced table doesn't exist. Check the Database Schema for valid tables.",
-        });
-      } else {
-        toast({
-          title: "SQL Loaded",
-          description: "Query has been loaded. Click 'Preview Results' to see the data.",
-        });
-      }
-    }
+    toast({
+      title: "Prompt Loaded",
+      description: "Click 'Generate SQL' to create the query.",
+    });
   };
 
   // Function to detect common SQL issues using actual database schema
@@ -1023,7 +1004,7 @@ ORDER BY last_login_date DESC`;
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => useExamplePrompt(example.prompt, example.hasError, example.sql)}
+                            onClick={() => useExamplePrompt(example.prompt)}
                             className="text-xs pr-8"
                           >
                             {example.label}
