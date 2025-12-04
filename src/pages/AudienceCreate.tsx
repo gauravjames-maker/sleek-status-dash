@@ -83,32 +83,84 @@ const audienceNameSuggestions = [
   "Newsletter Subscribers",
 ];
 
-// Example prompts for demo purposes
+// Example prompts with accurate SQL queries based on database schema
 const examplePrompts = [
   {
     label: "High-value customers",
     prompt: "Show me all users who have placed more than 3 orders with a total amount greater than $500, ordered by total spend descending",
+    sql: `SELECT u.id, u.email, u.first_name, u.last_name, u.status,
+       cm.total_orders, cm.total_spent, cm.customer_segment
+FROM users u
+JOIN customer_metrics cm ON u.id = cm.user_id
+WHERE cm.total_orders > 3
+  AND cm.total_spent > 500
+ORDER BY cm.total_spent DESC`,
   },
   {
     label: "Inactive users",
     prompt: "Find all users who signed up more than 30 days ago but haven't placed any orders yet",
+    sql: `SELECT u.id, u.email, u.first_name, u.last_name, u.created_at, u.status
+FROM users u
+LEFT JOIN customer_metrics cm ON u.id = cm.user_id
+WHERE u.created_at < CURRENT_DATE - INTERVAL '30 days'
+  AND (cm.total_orders IS NULL OR cm.total_orders = 0)
+ORDER BY u.created_at ASC`,
   },
   {
     label: "Recent active subscribers",
     prompt: "Get all users with active subscriptions that started in the last 90 days, sorted by start date",
+    sql: `SELECT u.id, u.email, u.first_name, u.last_name,
+       s.plan_type, s.start_date, s.monthly_price, s.status
+FROM users u
+JOIN subscriptions s ON u.id = s.user_id
+WHERE s.status = 'active'
+  AND s.start_date >= CURRENT_DATE - INTERVAL '90 days'
+ORDER BY s.start_date DESC`,
   },
   {
     label: "At-risk customers",
     prompt: "Show users who had orders in the last 6 months but none in the last 60 days",
     hasError: true,
+    sql: `SELECT u.id, u.email, u.first_name, u.last_name, cm.customer_segment
+FROM user_activity ua
+JOIN users u ON u.id = ua.user_id
+JOIN customer_metrics cm ON u.id = cm.user_id
+WHERE ua.last_order_date BETWEEN DATEADD(month, -6, GETDATE()) AND DATEADD(day, -60, GETDATE())
+  AND ua.order_count > 0
+ORDER BY cm.last_order_date DESC`,
   },
   {
     label: "Premium segment",
     prompt: "Find users with status 'active' who have a premium subscription plan and have made at least 2 purchases this year",
+    sql: `SELECT u.id, u.email, u.first_name, u.last_name,
+       s.plan_type, s.monthly_price,
+       cm.total_orders, cm.total_spent, cm.customer_segment
+FROM users u
+JOIN subscriptions s ON u.id = s.user_id
+JOIN customer_metrics cm ON u.id = cm.user_id
+WHERE u.status = 'active'
+  AND s.plan_type IN ('Premium', 'Enterprise')
+  AND s.status = 'active'
+  AND cm.total_orders >= 2
+ORDER BY cm.total_spent DESC`,
   },
   {
     label: "Comprehensive customer profile",
-    prompt: "Show me a detailed customer profile including first name, last name, age calculated from date of birth, email, total order amount with tax and shipping, average order value, number of orders, subscription plan type, subscription start and end dates, last purchase date, customer lifetime value, preferred payment method, billing address city and state, account status, loyalty points balance, and customer segment classification (VIP, Regular, New), filtered for customers who have spent more than $1000 in the last 12 months and have an active subscription, grouped by customer segment and ordered by lifetime value descending with a limit of top 100 customers",
+    prompt: "Show me a detailed customer profile including first name, last name, email, total order amount, average order value, number of orders, subscription plan type, last purchase date, customer lifetime value, preferred payment method, billing address, and customer segment classification",
+    sql: `SELECT u.id, u.first_name, u.last_name, u.email, u.date_of_birth, u.status,
+       cm.total_orders, cm.total_spent, cm.avg_order_value, cm.customer_ltv,
+       cm.loyalty_points, cm.customer_segment, cm.last_order_date, cm.first_order_date,
+       s.plan_type, s.start_date AS subscription_start, s.end_date AS subscription_end, s.monthly_price,
+       pm.type AS payment_method, pm.last_four,
+       a.street, a.city, a.state, a.postal_code, a.country
+FROM users u
+JOIN customer_metrics cm ON u.id = cm.user_id
+LEFT JOIN subscriptions s ON u.id = s.user_id AND s.status = 'active'
+LEFT JOIN payment_methods pm ON u.id = pm.user_id AND pm.is_default = true
+LEFT JOIN addresses a ON u.id = a.user_id AND a.is_billing = true
+WHERE cm.total_spent > 1000
+ORDER BY cm.customer_ltv DESC
+LIMIT 100`,
   },
 ];
 
@@ -133,7 +185,7 @@ const AudienceCreate = () => {
   const [sortColumn, setSortColumn] = useState<string>("");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [showInfoDialog, setShowInfoDialog] = useState(false);
-  const [savedPreferences, setSavedPreferences] = useState(examplePrompts);
+  const [savedPreferences, setSavedPreferences] = useState<Array<{ label: string; prompt: string; sql: string; hasError?: boolean }>>(examplePrompts);
   const [sqlError, setSqlError] = useState<{
     message: string;
     line: number;
@@ -417,34 +469,33 @@ Only return the SQL query, nothing else.`,
     }
   };
 
-  const useExamplePrompt = (prompt: string, hasError?: boolean) => {
+  const useExamplePrompt = (prompt: string, hasError?: boolean, sql?: string) => {
     setNaturalLanguageQuery(prompt);
+    setSqlError(null);
     
-    // If this is an error example, auto-generate SQL with error using actual schema
-    if (hasError) {
-      // This SQL references "user_activity" which doesn't exist in our schema
-      // Available tables: users, orders, subscriptions, products, customer_metrics, payment_methods, addresses
-      const errorSQL = `SELECT u.id, u.email, u.first_name, u.last_name, cm.customer_segment
-FROM user_activity ua
-JOIN users u ON u.id = ua.user_id
-JOIN customer_metrics cm ON u.id = cm.user_id
-WHERE ua.last_order_date BETWEEN DATEADD(month, -6, GETDATE()) AND DATEADD(day, -60, GETDATE())
-  AND ua.order_count > 0
-ORDER BY cm.last_order_date DESC`;
+    // If SQL is provided, use it directly
+    if (sql) {
+      setSqlQuery(sql);
       
-      const availableTables = getAvailableTables();
-      
-      setSqlQuery(errorSQL);
-      setSqlError({
-        message: `Table "user_activity" does not exist in the selected schema`,
-        line: 2,
-        suggestion: `Available tables: ${availableTables.join(', ')}. For at-risk customers, use "customer_metrics" table which has last_order_date and customer_segment columns.`,
-      });
-      
-      toast({
-        title: "Example: At-Risk Customers Query",
-        description: "This query has an issue - the referenced table doesn't exist. Check the Database Schema for valid tables.",
-      });
+      // If this is an error example, set the error state
+      if (hasError) {
+        const availableTables = getAvailableTables();
+        setSqlError({
+          message: `Table "user_activity" does not exist in the selected schema`,
+          line: 2,
+          suggestion: `Available tables: ${availableTables.join(', ')}. For at-risk customers, use "customer_metrics" table which has last_order_date and customer_segment columns.`,
+        });
+        
+        toast({
+          title: "Example: At-Risk Customers Query",
+          description: "This query has an issue - the referenced table doesn't exist. Check the Database Schema for valid tables.",
+        });
+      } else {
+        toast({
+          title: "SQL Loaded",
+          description: "Query has been loaded. Click 'Preview Results' to see the data.",
+        });
+      }
     }
   };
 
@@ -599,13 +650,14 @@ ORDER BY last_login_date DESC`;
     const newPreference = {
       label,
       prompt: naturalLanguageQuery,
+      sql: sqlQuery || "",
     };
 
     setSavedPreferences([...savedPreferences, newPreference]);
     
     toast({
       title: "Preference Saved",
-      description: "Your audience preference has been saved.",
+      description: "Your audience preference has been saved with the SQL query.",
     });
   };
 
@@ -896,7 +948,7 @@ ORDER BY last_login_date DESC`;
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => useExamplePrompt(example.prompt, (example as any).hasError)}
+                            onClick={() => useExamplePrompt(example.prompt, example.hasError, example.sql)}
                             className="text-xs pr-8"
                           >
                             {example.label}
