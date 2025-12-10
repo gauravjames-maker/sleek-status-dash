@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Play, Code, Sparkles, Check, ChevronsUpDown, Search, ArrowUpDown, X, Info, Save, Trash2, AlertTriangle, Database } from "lucide-react";
+import { ArrowLeft, Play, Code, Sparkles, Check, ChevronsUpDown, Search, ArrowUpDown, X, Info, Save, Trash2, AlertTriangle, Database, Shield, Clock, Users, Settings, CheckCircle, XCircle, Zap, Calendar } from "lucide-react";
 import DatabaseSchemaViewer, { databaseSchema, getAvailableTables } from "@/components/DatabaseSchemaViewer";
 import {
   Dialog,
@@ -35,12 +35,26 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { CampaignSidebar } from "@/components/CampaignSidebar";
 import { useToast } from "@/hooks/use-toast";
 import GPTTokenDialog from "@/components/GPTTokenDialog";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Slider } from "@/components/ui/slider";
 
 // Mock schema data
 const mockSchemas = [
@@ -69,58 +83,94 @@ const mockDatabaseConnections = [
   { id: "db-5", name: "Testing Database", type: "PostgreSQL" },
 ];
 
-// Sample audience name suggestions
-const audienceNameSuggestions = [
-  "Active Users",
-  "Premium Subscribers",
-  "Inactive Users (30 days)",
-  "High Value Customers",
-  "Trial Users",
-  "Churned Customers",
-  "New Sign-ups",
-  "Power Users",
-  "Recent Purchasers",
-  "Newsletter Subscribers",
+// Time range options
+const timeRangeOptions = [
+  { value: "7d", label: "Last 7 days", days: 7 },
+  { value: "30d", label: "Last 30 days", days: 30 },
+  { value: "90d", label: "Last 90 days", days: 90 },
+  { value: "180d", label: "Last 6 months", days: 180 },
+  { value: "365d", label: "Last year", days: 365 },
+  { value: "custom", label: "Custom range", days: null },
 ];
 
-// Example prompts with accurate SQL queries based on database schema
+// Data domain options (maps to optimized views/tables)
+const dataDomainOptions = [
+  { value: "all", label: "All Data", description: "Full access to all tables", tables: [] },
+  { value: "purchases", label: "Purchases", description: "Order and transaction data", tables: ["orders", "customer_metrics"] },
+  { value: "engagement", label: "Engagement", description: "User activity and events", tables: ["users", "subscriptions"] },
+  { value: "web_events", label: "Web Events", description: "Website interaction data", tables: ["events"] },
+  { value: "customer_profile", label: "Customer Profile", description: "Customer demographics and attributes", tables: ["users", "customer_metrics", "addresses"] },
+];
+
+// Admin settings (would come from backend in production)
+const adminSettings = {
+  defaultTimeRange: "30d",
+  maxDateWindowDays: 365,
+  defaultResultLimit: 10000,
+  hardResultCap: 100000,
+  allowedTables: ["users", "orders", "subscriptions", "customer_metrics", "addresses", "payment_methods", "products", "events"],
+  disallowedTables: ["raw_logs", "system_audit", "internal_metrics"],
+  maxJoinTables: 4,
+  requireDateFilter: true,
+};
+
+// Enhanced example prompts with structured constraints
 const examplePrompts = [
   {
     label: "High-value customers",
     prompt: "Show me all users who have placed more than 3 orders with a total amount greater than $500, ordered by total spend descending",
+    isRecommended: true,
+    hasTimeConstraint: true,
+    dataDomain: "purchases",
+    timeRange: "90d",
     sql: `SELECT u.id, u.email, u.first_name, u.last_name, u.status,
        cm.total_orders, cm.total_spent, cm.customer_segment
 FROM users u
 JOIN customer_metrics cm ON u.id = cm.user_id
 WHERE cm.total_orders > 3
   AND cm.total_spent > 500
-ORDER BY cm.total_spent DESC`,
+  AND cm.last_order_date >= CURRENT_DATE - INTERVAL '90 days'
+ORDER BY cm.total_spent DESC
+LIMIT 10000`,
   },
   {
     label: "Inactive users",
     prompt: "Find all users who signed up more than 30 days ago but haven't placed any orders yet",
+    isRecommended: true,
+    hasTimeConstraint: true,
+    dataDomain: "engagement",
+    timeRange: "30d",
     sql: `SELECT u.id, u.email, u.first_name, u.last_name, u.created_at, u.status
 FROM users u
 LEFT JOIN customer_metrics cm ON u.id = cm.user_id
 WHERE u.created_at < CURRENT_DATE - INTERVAL '30 days'
   AND (cm.total_orders IS NULL OR cm.total_orders = 0)
-ORDER BY u.created_at ASC`,
+ORDER BY u.created_at ASC
+LIMIT 10000`,
   },
   {
     label: "Recent active subscribers",
     prompt: "Get all users with active subscriptions that started in the last 90 days, sorted by start date",
+    isRecommended: true,
+    hasTimeConstraint: true,
+    dataDomain: "engagement",
+    timeRange: "90d",
     sql: `SELECT u.id, u.email, u.first_name, u.last_name,
        s.plan_type, s.start_date, s.monthly_price, s.status
 FROM users u
 JOIN subscriptions s ON u.id = s.user_id
 WHERE s.status = 'active'
   AND s.start_date >= CURRENT_DATE - INTERVAL '90 days'
-ORDER BY s.start_date DESC`,
+ORDER BY s.start_date DESC
+LIMIT 10000`,
   },
   {
-    label: "At-risk customers",
+    label: "At-risk customers (Demo Error)",
     prompt: "Show users who had orders in the last 6 months but none in the last 60 days",
+    isRecommended: false,
+    hasTimeConstraint: false,
     hasError: true,
+    dataDomain: "purchases",
     sql: `SELECT u.id, u.email, u.first_name, u.last_name, cm.customer_segment
 FROM user_activity ua
 JOIN users u ON u.id = ua.user_id
@@ -132,6 +182,10 @@ ORDER BY cm.last_order_date DESC`,
   {
     label: "Premium segment",
     prompt: "Find users with status 'active' who have a premium subscription plan and have made at least 2 purchases this year",
+    isRecommended: true,
+    hasTimeConstraint: true,
+    dataDomain: "customer_profile",
+    timeRange: "365d",
     sql: `SELECT u.id, u.email, u.first_name, u.last_name,
        s.plan_type, s.monthly_price,
        cm.total_orders, cm.total_spent, cm.customer_segment
@@ -142,28 +196,44 @@ WHERE u.status = 'active'
   AND s.plan_type IN ('Premium', 'Enterprise')
   AND s.status = 'active'
   AND cm.total_orders >= 2
-ORDER BY cm.total_spent DESC`,
+  AND cm.last_order_date >= CURRENT_DATE - INTERVAL '365 days'
+ORDER BY cm.total_spent DESC
+LIMIT 10000`,
   },
   {
-    label: "Comprehensive customer profile",
-    prompt: "Show me a detailed customer profile including first name, last name, email, total order amount, average order value, number of orders, subscription plan type, last purchase date, customer lifetime value, preferred payment method, billing address, and customer segment classification",
-    sql: `SELECT u.id, u.first_name, u.last_name, u.email, u.date_of_birth, u.status,
-       cm.total_orders, cm.total_spent, cm.avg_order_value, cm.customer_ltv,
-       cm.loyalty_points, cm.customer_segment, cm.last_order_date, cm.first_order_date,
-       s.plan_type, s.start_date AS subscription_start, s.end_date AS subscription_end, s.monthly_price,
-       pm.type AS payment_method, pm.last_four,
-       a.street, a.city, a.state, a.postal_code, a.country
-FROM users u
-JOIN customer_metrics cm ON u.id = cm.user_id
-LEFT JOIN subscriptions s ON u.id = s.user_id AND s.status = 'active'
-LEFT JOIN payment_methods pm ON u.id = pm.user_id AND pm.is_default = true
-LEFT JOIN addresses a ON u.id = a.user_id AND a.is_billing = true
-WHERE cm.total_spent > 1000
-ORDER BY cm.customer_ltv DESC
-LIMIT 100`,
+    label: "Free-form query",
+    prompt: "",
+    isRecommended: false,
+    hasTimeConstraint: false,
+    dataDomain: "all",
+    isFreeForm: true,
   },
 ];
 
+// Saved preference type
+interface SavedPreference {
+  label: string;
+  prompt: string;
+  sql?: string;
+  hasError?: boolean;
+  isRecommended?: boolean;
+  hasTimeConstraint?: boolean;
+  dataDomain?: string;
+  timeRange?: string;
+  isFreeForm?: boolean;
+}
+
+// Query safety analysis result type
+interface QuerySafetyResult {
+  isValid: boolean;
+  hasDateFilter: boolean;
+  hasResultLimit: boolean;
+  usesOptimizedView: boolean;
+  tablesUsed: string[];
+  estimatedDateSpan: string | null;
+  warnings: string[];
+  errors: string[];
+}
 
 const AudienceCreate = () => {
   const navigate = useNavigate();
@@ -185,13 +255,95 @@ const AudienceCreate = () => {
   const [sortColumn, setSortColumn] = useState<string>("");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [showInfoDialog, setShowInfoDialog] = useState(false);
-  const [savedPreferences, setSavedPreferences] = useState<Array<{ label: string; prompt: string; sql: string; hasError?: boolean }>>(examplePrompts);
+  const [showAdminSettings, setShowAdminSettings] = useState(false);
+  const [savedPreferences, setSavedPreferences] = useState<SavedPreference[]>(examplePrompts.filter(p => !p.isFreeForm) as SavedPreference[]);
   const [sqlError, setSqlError] = useState<{
     message: string;
     line: number;
     column?: number;
     suggestion?: string;
   } | null>(null);
+
+  // New state for cost-aware guardrails
+  const [timeRange, setTimeRange] = useState(adminSettings.defaultTimeRange);
+  const [customDateFrom, setCustomDateFrom] = useState("");
+  const [customDateTo, setCustomDateTo] = useState("");
+  const [resultLimit, setResultLimit] = useState(adminSettings.defaultResultLimit);
+  const [dataDomain, setDataDomain] = useState("all");
+  const [querySafety, setQuerySafety] = useState<QuerySafetyResult | null>(null);
+  const [showSafetyWarning, setShowSafetyWarning] = useState(false);
+
+  // Analyze SQL query for safety
+  const analyzeQuerySafety = (sql: string): QuerySafetyResult => {
+    const result: QuerySafetyResult = {
+      isValid: true,
+      hasDateFilter: false,
+      hasResultLimit: false,
+      usesOptimizedView: true,
+      tablesUsed: [],
+      estimatedDateSpan: null,
+      warnings: [],
+      errors: [],
+    };
+
+    // Extract tables used
+    const tablePattern = /(?:FROM|JOIN)\s+(\w+)/gi;
+    let match;
+    while ((match = tablePattern.exec(sql)) !== null) {
+      const tableName = match[1].toLowerCase();
+      if (!result.tablesUsed.includes(tableName)) {
+        result.tablesUsed.push(tableName);
+      }
+    }
+
+    // Check for date filter
+    const datePatterns = [
+      /WHERE.*(?:created_at|updated_at|start_date|end_date|last_order_date|order_date|timestamp).*(?:>=|>|BETWEEN)/i,
+      /INTERVAL\s*'\d+\s*(?:days?|months?|years?)'/i,
+      /CURRENT_DATE/i,
+      /NOW\(\)/i,
+    ];
+    result.hasDateFilter = datePatterns.some(pattern => pattern.test(sql));
+
+    // Check for result limit
+    result.hasResultLimit = /LIMIT\s+\d+/i.test(sql);
+
+    // Check for disallowed tables
+    const disallowedUsed = result.tablesUsed.filter(t => 
+      adminSettings.disallowedTables.includes(t)
+    );
+    if (disallowedUsed.length > 0) {
+      result.errors.push(`Query uses restricted tables: ${disallowedUsed.join(', ')}`);
+      result.isValid = false;
+    }
+
+    // Check for too many joins
+    if (result.tablesUsed.length > adminSettings.maxJoinTables) {
+      result.warnings.push(`Query joins ${result.tablesUsed.length} tables (max recommended: ${adminSettings.maxJoinTables})`);
+    }
+
+    // Check for missing date filter (if required)
+    if (adminSettings.requireDateFilter && !result.hasDateFilter) {
+      result.warnings.push("No date filter detected - query may scan large historical data");
+    }
+
+    // Check for missing limit
+    if (!result.hasResultLimit) {
+      result.warnings.push("No result limit - consider adding LIMIT to control output size");
+    }
+
+    // Estimate date span from SQL
+    const intervalMatch = sql.match(/INTERVAL\s*'(\d+)\s*(days?|months?|years?)'/i);
+    if (intervalMatch) {
+      result.estimatedDateSpan = `${intervalMatch[1]} ${intervalMatch[2]}`;
+    }
+
+    // Check if using optimized views (simplified check)
+    const optimizedTables = ["customer_metrics", "users", "subscriptions"];
+    result.usesOptimizedView = result.tablesUsed.some(t => optimizedTables.includes(t));
+
+    return result;
+  };
 
   const generateSQLFromNaturalLanguage = async () => {
     const token = sessionStorage.getItem("gpt_token");
@@ -210,7 +362,23 @@ const AudienceCreate = () => {
       return;
     }
 
+    // Validate time range selection
+    if (!timeRange) {
+      toast({
+        title: "Time Range Required",
+        description: "Please select a time range to keep queries fast and cost-efficient.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsGenerating(true);
+    setQuerySafety(null);
+
+    // Build time constraint for the prompt
+    const timeConstraint = timeRange === "custom" 
+      ? `between ${customDateFrom} and ${customDateTo}`
+      : `in the ${timeRangeOptions.find(t => t.value === timeRange)?.label.toLowerCase()}`;
 
     try {
       const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -226,11 +394,18 @@ const AudienceCreate = () => {
               role: "system",
               content: `You are a SQL expert. Convert natural language queries to SQL. The available tables are: ${selectedTables.join(", ")}. 
 Available schemas: ${selectedSchemas.length > 0 ? selectedSchemas.join(", ") : "all"}
+
+IMPORTANT CONSTRAINTS:
+1. Always include a date filter using the time range: ${timeConstraint}
+2. Always add LIMIT ${resultLimit} at the end of the query
+3. Use optimized tables when possible (customer_metrics for aggregations)
+4. Avoid raw log tables
+
 Only return the SQL query, nothing else.`,
             },
             {
               role: "user",
-              content: naturalLanguageQuery,
+              content: `${naturalLanguageQuery}\n\nTime range: ${timeConstraint}\nResult limit: ${resultLimit}`,
             },
           ],
           temperature: 0.3,
@@ -252,6 +427,10 @@ Only return the SQL query, nothing else.`,
       
       setSqlQuery(cleanSQL);
       
+      // Analyze query safety
+      const safetyResult = analyzeQuerySafety(cleanSQL);
+      setQuerySafety(safetyResult);
+      
       // Check for potential issues in the generated SQL
       const detectedError = detectSQLIssues(cleanSQL);
       setSqlError(detectedError);
@@ -261,6 +440,12 @@ Only return the SQL query, nothing else.`,
           title: "SQL Generated with Warning",
           description: "Review the highlighted issue in your query.",
           variant: "destructive",
+        });
+      } else if (safetyResult.warnings.length > 0 || safetyResult.errors.length > 0) {
+        setShowSafetyWarning(true);
+        toast({
+          title: "Query Safety Review",
+          description: "Please review the safety summary before running.",
         });
       } else {
         toast({
@@ -316,19 +501,6 @@ Only return the SQL query, nothing else.`,
     if (whereMatch) {
       const whereClause = whereMatch[1];
       
-      // Parse common conditions
-      const conditionPatterns = [
-        // column = 'value' or column = value
-        /(\w+(?:\.\w+)?)\s*=\s*'([^']+)'/gi,
-        /(\w+(?:\.\w+)?)\s*=\s*(\d+)/gi,
-        // column > value, column < value, etc.
-        /(\w+(?:\.\w+)?)\s*(>|<|>=|<=)\s*(\d+)/gi,
-        // column IN ('value1', 'value2')
-        /(\w+(?:\.\w+)?)\s+IN\s*\(([^)]+)\)/gi,
-        // column IS NULL / IS NOT NULL
-        /(\w+(?:\.\w+)?)\s+IS\s+(NOT\s+)?NULL/gi,
-      ];
-      
       // Simple equality conditions
       const eqPattern = /(\w+(?:\.\w+)?)\s*=\s*'([^']+)'/gi;
       let eqMatch;
@@ -383,7 +555,7 @@ Only return the SQL query, nothing else.`,
     return data.filter(row => {
       return conditions.every(condition => {
         const rowValue = row[condition.column];
-        if (rowValue === undefined) return true; // Skip if column not found
+        if (rowValue === undefined) return true;
         
         switch (condition.operator) {
           case '=':
@@ -431,7 +603,6 @@ Only return the SQL query, nothing else.`,
       resultData = primaryTable?.sampleData.map((primaryRow: any, index: number) => {
         const combinedRow: Record<string, any> = { ...primaryRow };
         
-        // Add data from joined tables
         schemaTables.slice(1).forEach(joinedTable => {
           if (joinedTable) {
             const joinedRow = joinedTable.sampleData.find(
@@ -453,7 +624,6 @@ Only return the SQL query, nothing else.`,
         return combinedRow;
       }) || [];
     } else {
-      // Single table
       resultData = [...(schemaTables[0]?.sampleData || [])];
     }
     
@@ -478,6 +648,13 @@ Only return the SQL query, nothing else.`,
       });
     }
     
+    // Apply result limit
+    const limitMatch = sql.match(/LIMIT\s+(\d+)/i);
+    if (limitMatch) {
+      const limit = parseInt(limitMatch[1], 10);
+      resultData = resultData.slice(0, limit);
+    }
+    
     return resultData;
   };
 
@@ -491,7 +668,16 @@ Only return the SQL query, nothing else.`,
       return;
     }
 
-    // Generate preview data based on actual SQL query and schema
+    // Check for safety errors before execution
+    if (querySafety?.errors.length) {
+      toast({
+        title: "Query Blocked",
+        description: "Please fix the safety issues before running the query.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const result = generatePreviewData(sqlQuery);
     setPreviewData(result);
     setShowPreviewDialog(true);
@@ -510,7 +696,6 @@ Only return the SQL query, nothing else.`,
 
     let filtered = previewData;
 
-    // Apply search filter
     if (searchTerm) {
       filtered = previewData.filter((row) =>
         Object.values(row).some((value) =>
@@ -519,7 +704,6 @@ Only return the SQL query, nothing else.`,
       );
     }
 
-    // Apply sorting
     if (sortColumn) {
       filtered = [...filtered].sort((a, b) => {
         const aVal = a[sortColumn];
@@ -544,14 +728,25 @@ Only return the SQL query, nothing else.`,
     }
   };
 
-  const useExamplePrompt = (prompt: string) => {
-    setNaturalLanguageQuery(prompt);
+  const useExamplePrompt = (example: SavedPreference) => {
+    setNaturalLanguageQuery(example.prompt);
     setSqlError(null);
-    setSqlQuery(""); // Clear any existing SQL - user needs to click "Generate SQL"
+    setSqlQuery("");
+    setQuerySafety(null);
+    
+    // Set scope controls from the example
+    if (example.timeRange) {
+      setTimeRange(example.timeRange);
+    }
+    if (example.dataDomain) {
+      setDataDomain(example.dataDomain);
+    }
     
     toast({
       title: "Prompt Loaded",
-      description: "Click 'Generate SQL' to create the query.",
+      description: example.isRecommended 
+        ? "Recommended prompt with built-in constraints. Click 'Generate SQL' to create the query."
+        : "Click 'Generate SQL' to create the query.",
     });
   };
 
@@ -619,27 +814,6 @@ Only return the SQL query, nothing else.`,
     return null;
   };
 
-  // Simulate an example with error for demo
-  const simulateErrorExample = () => {
-    const errorSQL = `SELECT id, email, total_purchases, last_login_date
-FROM customer_profiles
-WHERE status = 'active'
-  AND total_purchases > 500
-ORDER BY last_login_date DESC`;
-    
-    setSqlQuery(errorSQL);
-    setSqlError({
-      message: `Table "customer_profiles" does not exist in the selected schema`,
-      line: 2,
-      suggestion: `Available tables: users, orders, products, subscriptions. Did you mean "customers" from the analytics schema?`,
-    });
-    
-    toast({
-      title: "Example: SQL with Issue",
-      description: "This demonstrates how errors are highlighted.",
-    });
-  };
-
   // Render SQL with error highlighting
   const renderSQLWithHighlight = () => {
     if (!sqlError || !sqlQuery) return null;
@@ -672,7 +846,6 @@ ORDER BY last_login_date DESC`;
           })}
         </div>
         
-        {/* Error message */}
         <div className="mt-3 p-3 rounded-lg bg-destructive/10 border border-destructive/30">
           <div className="flex items-start gap-2">
             <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
@@ -692,6 +865,100 @@ ORDER BY last_login_date DESC`;
     );
   };
 
+  // Render query safety summary
+  const renderQuerySafetySummary = () => {
+    if (!querySafety) return null;
+
+    return (
+      <div className="mt-4 p-4 rounded-lg border border-border bg-muted/30">
+        <div className="flex items-center gap-2 mb-3">
+          <Shield className="h-4 w-4 text-primary" />
+          <span className="font-medium text-sm">Query Safety Summary</span>
+        </div>
+        
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+          <div className="flex items-center gap-2">
+            {querySafety.hasDateFilter ? (
+              <CheckCircle className="h-4 w-4 text-green-500" />
+            ) : (
+              <XCircle className="h-4 w-4 text-amber-500" />
+            )}
+            <span>Date filter</span>
+          </div>
+          <div className="flex items-center gap-2">
+            {querySafety.hasResultLimit ? (
+              <CheckCircle className="h-4 w-4 text-green-500" />
+            ) : (
+              <XCircle className="h-4 w-4 text-amber-500" />
+            )}
+            <span>Result limit</span>
+          </div>
+          <div className="flex items-center gap-2">
+            {querySafety.usesOptimizedView ? (
+              <CheckCircle className="h-4 w-4 text-green-500" />
+            ) : (
+              <XCircle className="h-4 w-4 text-muted-foreground" />
+            )}
+            <span>Optimized tables</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Database className="h-4 w-4 text-muted-foreground" />
+            <span>{querySafety.tablesUsed.length} table(s)</span>
+          </div>
+        </div>
+
+        {querySafety.estimatedDateSpan && (
+          <div className="mt-3 text-xs text-muted-foreground">
+            <span className="font-medium">Date span:</span> {querySafety.estimatedDateSpan}
+          </div>
+        )}
+
+        {querySafety.warnings.length > 0 && (
+          <div className="mt-3 space-y-1">
+            {querySafety.warnings.map((warning, idx) => (
+              <div key={idx} className="flex items-start gap-2 text-xs text-amber-600 dark:text-amber-400">
+                <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0" />
+                <span>{warning}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {querySafety.errors.length > 0 && (
+          <div className="mt-3 space-y-1">
+            {querySafety.errors.map((error, idx) => (
+              <div key={idx} className="flex items-start gap-2 text-xs text-destructive">
+                <XCircle className="h-3 w-3 mt-0.5 shrink-0" />
+                <span>{error}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {(querySafety.warnings.length > 0 || querySafety.errors.length > 0) && (
+          <div className="mt-3 flex gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => {
+                // Add missing constraints to query
+                let updatedSQL = sqlQuery;
+                if (!querySafety.hasResultLimit) {
+                  updatedSQL = updatedSQL.trim().replace(/;?\s*$/, '') + `\nLIMIT ${resultLimit}`;
+                }
+                setSqlQuery(updatedSQL);
+                setQuerySafety(analyzeQuerySafety(updatedSQL));
+              }}
+            >
+              <Zap className="h-3 w-3 mr-1" />
+              Auto-fix constraints
+            </Button>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const savePreference = () => {
     if (!naturalLanguageQuery.trim()) {
       toast({
@@ -707,6 +974,10 @@ ORDER BY last_login_date DESC`;
       label,
       prompt: naturalLanguageQuery,
       sql: sqlQuery || "",
+      isRecommended: false,
+      hasTimeConstraint: Boolean(timeRange && timeRange !== "custom"),
+      dataDomain,
+      timeRange,
     };
 
     setSavedPreferences([...savedPreferences, newPreference]);
@@ -773,6 +1044,14 @@ ORDER BY last_login_date DESC`;
               >
                 <Info className="h-3.5 w-3.5" />
                 How SQL AI Works
+              </Badge>
+              <Badge 
+                variant="outline" 
+                className="cursor-pointer hover:bg-accent transition-colors flex items-center gap-1.5 px-3 py-1"
+                onClick={() => setShowAdminSettings(true)}
+              >
+                <Settings className="h-3.5 w-3.5" />
+                Admin Settings
               </Badge>
               <Button onClick={handleSave}>Save Audience</Button>
             </div>
@@ -986,6 +1265,110 @@ ORDER BY last_login_date DESC`;
               </TabsList>
 
               <TabsContent value="ai-sql" className="space-y-4">
+                {/* Scope Controls Card */}
+                <div className="bg-card rounded-lg border border-border p-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Shield className="h-4 w-4 text-primary" />
+                    <Label className="font-medium">Query Scope Controls</Label>
+                    <span className="text-xs text-muted-foreground ml-2">
+                      These settings help keep queries fast and cost-efficient
+                    </span>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* Time Range */}
+                    <div className="space-y-2">
+                      <Label className="text-sm flex items-center gap-2">
+                        <Clock className="h-3.5 w-3.5" />
+                        Time Range <span className="text-destructive">*</span>
+                      </Label>
+                      <Select value={timeRange} onValueChange={setTimeRange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select time range" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-popover z-50">
+                          {timeRangeOptions.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {timeRange === "custom" && (
+                        <div className="grid grid-cols-2 gap-2 mt-2">
+                          <Input
+                            type="date"
+                            value={customDateFrom}
+                            onChange={(e) => setCustomDateFrom(e.target.value)}
+                            placeholder="From"
+                          />
+                          <Input
+                            type="date"
+                            value={customDateTo}
+                            onChange={(e) => setCustomDateTo(e.target.value)}
+                            placeholder="To"
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Result Limit */}
+                    <div className="space-y-2">
+                      <Label className="text-sm flex items-center gap-2">
+                        <Users className="h-3.5 w-3.5" />
+                        Max Audience Size
+                      </Label>
+                      <Select 
+                        value={resultLimit.toString()} 
+                        onValueChange={(v) => setResultLimit(parseInt(v, 10))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-popover z-50">
+                          <SelectItem value="1000">1,000 profiles</SelectItem>
+                          <SelectItem value="5000">5,000 profiles</SelectItem>
+                          <SelectItem value="10000">10,000 profiles (default)</SelectItem>
+                          <SelectItem value="25000">25,000 profiles</SelectItem>
+                          <SelectItem value="50000">50,000 profiles</SelectItem>
+                          <SelectItem value="100000">100,000 profiles (max)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Data Domain */}
+                    <div className="space-y-2">
+                      <Label className="text-sm flex items-center gap-2">
+                        <Database className="h-3.5 w-3.5" />
+                        Data Domain
+                      </Label>
+                      <Select value={dataDomain} onValueChange={setDataDomain}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-popover z-50">
+                          {dataDomainOptions.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              <div className="flex flex-col">
+                                <span>{option.label}</span>
+                                <span className="text-xs text-muted-foreground">{option.description}</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {!timeRange && (
+                    <div className="mt-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-xs text-amber-600 dark:text-amber-400 flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4" />
+                      Please select a time range before generating SQL. This prevents scanning unnecessary historical data.
+                    </div>
+                  )}
+                </div>
+
+                {/* Natural Language Query Card */}
                 <div className="bg-card rounded-lg border border-border p-6">
                   <Label htmlFor="natural-query">Describe Your Audience</Label>
                   <Textarea
@@ -997,16 +1380,31 @@ ORDER BY last_login_date DESC`;
                   />
                   
                   <div className="mt-4">
-                    <Label className="text-sm text-muted-foreground">Audience Preference</Label>
+                    <div className="flex items-center justify-between mb-2">
+                      <Label className="text-sm text-muted-foreground">Audience Preferences</Label>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Badge variant="default" className="text-[10px] px-1.5 py-0 bg-primary/20 text-primary border-primary/30">
+                          <Zap className="h-2.5 w-2.5 mr-0.5" />
+                          Recommended
+                        </Badge>
+                        <span>= includes time & limit constraints</span>
+                      </div>
+                    </div>
                     <div className="flex flex-wrap gap-2 mt-2">
                       {savedPreferences.map((example, index) => (
                         <div key={index} className="relative group">
                           <Button
-                            variant="outline"
+                            variant={example.isRecommended ? "default" : "outline"}
                             size="sm"
-                            onClick={() => useExamplePrompt(example.prompt)}
-                            className="text-xs pr-8"
+                            onClick={() => useExamplePrompt(example)}
+                            className={cn(
+                              "text-xs pr-8",
+                              example.isRecommended && "bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30",
+                              example.hasError && "border-destructive/50 text-destructive"
+                            )}
                           >
+                            {example.isRecommended && <Zap className="h-3 w-3 mr-1" />}
+                            {example.hasError && <AlertTriangle className="h-3 w-3 mr-1" />}
                             {example.label}
                           </Button>
                           <Button
@@ -1022,19 +1420,25 @@ ORDER BY last_login_date DESC`;
                           </Button>
                         </div>
                       ))}
+                      
+                      {/* Free-form option */}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setNaturalLanguageQuery("");
+                          setSqlQuery("");
+                          setQuerySafety(null);
+                        }}
+                        className="text-xs border border-dashed border-border"
+                      >
+                        <Code className="h-3 w-3 mr-1" />
+                        Free-form query
+                      </Button>
                     </div>
                   </div>
 
                   <div className="flex gap-2 mt-4">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={simulateErrorExample}
-                      className="text-xs text-muted-foreground"
-                    >
-                      <AlertTriangle className="h-3 w-3 mr-1" />
-                      Show Error Example
-                    </Button>
                     <DatabaseSchemaViewer
                       trigger={
                         <Button variant="ghost" size="sm" className="text-xs text-muted-foreground">
@@ -1048,7 +1452,7 @@ ORDER BY last_login_date DESC`;
                   <div className="flex gap-2 mt-2">
                     <Button
                       onClick={generateSQLFromNaturalLanguage}
-                      disabled={isGenerating}
+                      disabled={isGenerating || !timeRange}
                       className="flex-1"
                     >
                       <Sparkles className="h-4 w-4 mr-2" />
@@ -1086,6 +1490,7 @@ ORDER BY last_login_date DESC`;
                         onChange={(e) => {
                           setSqlQuery(e.target.value);
                           setSqlError(null);
+                          setQuerySafety(analyzeQuerySafety(e.target.value));
                         }}
                         className="mt-2 font-mono text-sm min-h-[120px]"
                       />
@@ -1098,13 +1503,22 @@ ORDER BY last_login_date DESC`;
                           setSqlQuery(e.target.value);
                           const newError = detectSQLIssues(e.target.value);
                           setSqlError(newError);
+                          setQuerySafety(analyzeQuerySafety(e.target.value));
                         }}
                         placeholder="Edit the SQL to fix the issue..."
                         className="font-mono text-sm min-h-[100px]"
                       />
                     )}
+
+                    {/* Query Safety Summary */}
+                    {renderQuerySafetySummary()}
                     
-                    <Button onClick={executeQuery} variant="outline" className="w-full">
+                    <Button 
+                      onClick={executeQuery} 
+                      variant="outline" 
+                      className="w-full"
+                      disabled={querySafety?.errors.length ? querySafety.errors.length > 0 : false}
+                    >
                       <Play className="h-4 w-4 mr-2" />
                       Preview Results
                     </Button>
@@ -1119,9 +1533,15 @@ ORDER BY last_login_date DESC`;
                     id="manual-query"
                     placeholder="SELECT * FROM users WHERE status = 'active'"
                     value={sqlQuery}
-                    onChange={(e) => setSqlQuery(e.target.value)}
+                    onChange={(e) => {
+                      setSqlQuery(e.target.value);
+                      setQuerySafety(analyzeQuerySafety(e.target.value));
+                    }}
                     className="mt-2 font-mono text-sm min-h-[200px]"
                   />
+                  
+                  {sqlQuery && renderQuerySafetySummary()}
+                  
                   <Button onClick={executeQuery} variant="outline" className="w-full">
                     <Play className="h-4 w-4 mr-2" />
                     Preview Results
@@ -1135,6 +1555,7 @@ ORDER BY last_login_date DESC`;
 
       <GPTTokenDialog open={showTokenDialog} onOpenChange={setShowTokenDialog} />
 
+      {/* How It Works Dialog */}
       <Dialog open={showInfoDialog} onOpenChange={setShowInfoDialog}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
@@ -1151,7 +1572,13 @@ ORDER BY last_login_date DESC`;
               Just select the table(s) and schema(s) you want to explore. You can pick one table or many, across schemas if needed. Add all you need to know about which table and schema your data exists in for accurate results. If you are unsure about the schemas, that's also okay—having only the table details will still do the job.
             </p>
             <p>
+              <strong>New:</strong> Use the scope controls to set your time range and audience size limits. This helps keep your queries fast and cost-efficient.
+            </p>
+            <p>
               Then, simply tell MG - AI in plain English how you'd like to see your audience. MG - AI will do all the hard work, writing the right SQL queries behind the scenes to get you the results you want.
+            </p>
+            <p>
+              Look for <Badge variant="default" className="text-[10px] px-1.5 py-0 bg-primary/20 text-primary border-primary/30 mx-1"><Zap className="h-2.5 w-2.5 mr-0.5 inline" />Recommended</Badge> prompts—these include built-in constraints for safer, faster queries.
             </p>
             <p>
               If you feel MG - AI didn't quite get it right, you can edit the SQL yourself. This way, you get the best of both worlds—ease of AI assistance with full control when you need it.
@@ -1159,7 +1586,119 @@ ORDER BY last_login_date DESC`;
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Admin Settings Dialog */}
+      <Dialog open={showAdminSettings} onOpenChange={setShowAdminSettings}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Settings className="h-5 w-5 text-primary" />
+              Admin Query Settings
+            </DialogTitle>
+            <DialogDescription>
+              Configure default constraints and safety rules for AI-generated queries
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6 mt-4">
+            <div className="space-y-4">
+              <h4 className="font-medium text-sm">Time Range Defaults</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-xs">Default Time Range</Label>
+                  <Select defaultValue={adminSettings.defaultTimeRange}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-popover z-50">
+                      {timeRangeOptions.filter(o => o.value !== "custom").map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs">Maximum Date Window (days)</Label>
+                  <Input type="number" defaultValue={adminSettings.maxDateWindowDays} />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h4 className="font-medium text-sm">Result Limits</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-xs">Default Result Limit</Label>
+                  <Input type="number" defaultValue={adminSettings.defaultResultLimit} />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs">Hard Result Cap</Label>
+                  <Input type="number" defaultValue={adminSettings.hardResultCap} />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h4 className="font-medium text-sm">Query Safety Rules</h4>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs">Require date filter in all queries</Label>
+                  <Switch defaultChecked={adminSettings.requireDateFilter} />
+                </div>
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs">Max tables in JOIN</Label>
+                  <Input 
+                    type="number" 
+                    defaultValue={adminSettings.maxJoinTables} 
+                    className="w-20"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h4 className="font-medium text-sm">Allowed Tables for AI Queries</h4>
+              <div className="flex flex-wrap gap-1">
+                {adminSettings.allowedTables.map((table) => (
+                  <Badge key={table} variant="secondary" className="text-xs">
+                    {table}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h4 className="font-medium text-sm text-destructive">Restricted Tables</h4>
+              <div className="flex flex-wrap gap-1">
+                {adminSettings.disallowedTables.map((table) => (
+                  <Badge key={table} variant="destructive" className="text-xs">
+                    {table}
+                  </Badge>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                These tables are blocked from AI-generated queries to prevent scanning large raw data.
+              </p>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-4 border-t">
+              <Button variant="outline" onClick={() => setShowAdminSettings(false)}>
+                Cancel
+              </Button>
+              <Button onClick={() => {
+                toast({ title: "Settings Saved", description: "Admin settings have been updated." });
+                setShowAdminSettings(false);
+              }}>
+                Save Settings
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
       
+      {/* Preview Results Dialog */}
       <Dialog open={showPreviewDialog} onOpenChange={setShowPreviewDialog}>
         <DialogContent className="max-w-5xl max-h-[80vh] flex flex-col z-50">
           <DialogHeader>
