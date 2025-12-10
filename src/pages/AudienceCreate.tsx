@@ -1336,28 +1336,6 @@ Only return the SQL query, nothing else.`,
                       </Select>
                     </div>
 
-                    {/* Data Domain */}
-                    <div className="space-y-2">
-                      <Label className="text-sm flex items-center gap-2">
-                        <Database className="h-3.5 w-3.5" />
-                        Data Domain
-                      </Label>
-                      <Select value={dataDomain} onValueChange={setDataDomain}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="bg-popover z-50">
-                          {dataDomainOptions.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                              <div className="flex flex-col">
-                                <span>{option.label}</span>
-                                <span className="text-xs text-muted-foreground">{option.description}</span>
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
                   </div>
 
                   {!timeRange && (
