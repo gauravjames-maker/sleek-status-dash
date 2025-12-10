@@ -1275,7 +1275,7 @@ Only return the SQL query, nothing else.`,
                     </span>
                   </div>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Time Range */}
                     <div className="space-y-2">
                       <Label className="text-sm flex items-center gap-2">
@@ -1283,7 +1283,7 @@ Only return the SQL query, nothing else.`,
                         Time Range <span className="text-destructive">*</span>
                       </Label>
                       <Select value={timeRange} onValueChange={setTimeRange}>
-                        <SelectTrigger>
+                        <SelectTrigger className="w-full">
                           <SelectValue placeholder="Select time range" />
                         </SelectTrigger>
                         <SelectContent className="bg-popover z-50">
@@ -1322,7 +1322,7 @@ Only return the SQL query, nothing else.`,
                         value={resultLimit.toString()} 
                         onValueChange={(v) => setResultLimit(parseInt(v, 10))}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className="w-full">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="bg-popover z-50">
@@ -1335,7 +1335,6 @@ Only return the SQL query, nothing else.`,
                         </SelectContent>
                       </Select>
                     </div>
-
                   </div>
 
                   {!timeRange && (
