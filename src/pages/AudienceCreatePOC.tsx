@@ -48,6 +48,39 @@ const MOCK_AMBIGUITY_OPTIONS = [
   },
 ];
 
+const SAVED_PREFERENCES = [
+  {
+    id: "high_value",
+    label: "High-value customers",
+    query: "Show me customers who spent more than $500 in the last 90 days",
+    recommended: true,
+  },
+  {
+    id: "inactive",
+    label: "Inactive users",
+    query: "Find users who haven't logged in for 60 days but were active before",
+    recommended: true,
+  },
+  {
+    id: "recent_purchasers",
+    label: "Recent purchasers",
+    query: "Customers who made a purchase in the last 7 days",
+    recommended: true,
+  },
+  {
+    id: "engaged_non_buyers",
+    label: "Engaged non-buyers",
+    query: "Users with more than 5 sessions but no orders",
+    recommended: false,
+  },
+  {
+    id: "demo_ambiguity",
+    label: "Demo: Active customers (ambiguous)",
+    query: "Show me active high-value customers from the last 30 days",
+    recommended: false,
+  },
+];
+
 const MOCK_SQL = `SELECT 
   c.customer_id,
   c.email,
@@ -232,6 +265,34 @@ export default function AudienceCreatePOC() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                {/* Saved Preferences */}
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground uppercase tracking-wide">
+                    Saved Preferences
+                  </Label>
+                  <div className="flex flex-wrap gap-2">
+                    {SAVED_PREFERENCES.map((pref) => (
+                      <Badge
+                        key={pref.id}
+                        variant="outline"
+                        className={cn(
+                          "cursor-pointer transition-all hover:bg-muted px-3 py-1.5",
+                          pref.recommended && "border-primary/50 bg-primary/5",
+                          naturalLanguageQuery === pref.query && "bg-primary text-primary-foreground"
+                        )}
+                        onClick={() => setNaturalLanguageQuery(pref.query)}
+                      >
+                        {pref.recommended && <Sparkles className="h-3 w-3 mr-1.5 text-primary" />}
+                        {pref.label}
+                      </Badge>
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    <Sparkles className="h-3 w-3 inline mr-1" />
+                    Recommended prompts include built-in time constraints for faster queries.
+                  </p>
+                </div>
+
                 <Textarea
                   placeholder="Example: Show me active high-value customers from the last 30 days."
                   className="min-h-[120px] resize-none text-base"
