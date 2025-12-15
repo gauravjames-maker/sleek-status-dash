@@ -39,6 +39,7 @@ const navItems: SidebarNavItem[] = [
       { label: "Audience", href: "/people/audience", icon: null },
       { label: "Blueprints", href: "/people/blueprints", icon: null },
       { label: "Profile lookup", href: "/people/profile-lookup", icon: null },
+      { label: "POC", href: "/people/audience/create-poc", icon: null },
     ],
   },
   {
