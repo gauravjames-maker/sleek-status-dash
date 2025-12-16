@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -14,24 +15,16 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Plus, Trash2, X, MoreHorizontal, Users, Globe, Link2, UserCheck, Route, Sparkles, Search } from "lucide-react";
+import { Plus, Trash2, GripVertical, Users, Search, Zap, Link2, UserCheck, Box, Hash } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export interface FilterCondition {
   id: string;
-  type: "property" | "relation" | "event" | "audience" | "journey" | "trait";
+  type: "property" | "event" | "relation" | "computed";
   field: string;
   operator: string;
   value: string;
-  valueType?: "text" | "number" | "date";
-  timeConstraint?: {
-    type: "within" | "between";
-    value: string;
-  };
-  frequency?: {
-    operator: string;
-    value: number;
-  };
+  timeConstraint?: string;
 }
 
 export interface FilterGroup {
@@ -48,13 +41,10 @@ interface FilterBuilderProps {
 }
 
 const FILTER_TYPES = [
-  { id: "all", label: "All filters", description: "View all available filters", icon: Globe, color: "bg-[hsl(162,72%,40%)]" },
-  { id: "property", label: "Properties", description: "Filter by a person's attributes", icon: UserCheck, color: "bg-purple-500" },
-  { id: "relation", label: "Relations", description: "Filter by a relationship to other entities", icon: Link2, color: "bg-green-500" },
-  { id: "event", label: "Events", description: "Filter by an event they've performed", icon: Sparkles, color: "bg-blue-500" },
-  { id: "audience", label: "Audiences", description: "Filter by whether they're included in another audience", icon: Users, color: "bg-indigo-500" },
-  { id: "journey", label: "Journeys", description: "Filter by whether they're in a journey", icon: Route, color: "bg-cyan-500" },
-  { id: "trait", label: "Custom traits", description: "Filter by your organization's custom attributes", icon: Sparkles, color: "bg-amber-500" },
+  { id: "property", label: "Property", description: "Filter by field value", icon: Box, color: "bg-purple-500" },
+  { id: "event", label: "Event", description: "Filter by actions performed", icon: Zap, color: "bg-blue-500" },
+  { id: "relation", label: "Relation", description: "Filter by related records", icon: Link2, color: "bg-green-500" },
+  { id: "computed", label: "Computed", description: "Aggregates like count, sum", icon: Hash, color: "bg-amber-500" },
 ];
 
 const OPERATORS = [
@@ -62,18 +52,19 @@ const OPERATORS = [
   { value: "!=", label: "not equals" },
   { value: ">", label: "greater than" },
   { value: "<", label: "less than" },
-  { value: ">=", label: "greater or equal" },
-  { value: "<=", label: "less or equal" },
-  { value: "IN", label: "in list" },
+  { value: ">=", label: "≥" },
+  { value: "<=", label: "≤" },
   { value: "CONTAINS", label: "contains" },
+  { value: "IN", label: "in list" },
   { value: "IS NULL", label: "is empty" },
-  { value: "IS NOT NULL", label: "is not empty" },
+  { value: "IS NOT NULL", label: "has value" },
 ];
 
-const FREQUENCY_OPERATORS = [
-  { value: "at_least", label: "at least" },
-  { value: "at_most", label: "at most" },
-  { value: "exactly", label: "exactly" },
+const TIME_CONSTRAINTS = [
+  { value: "", label: "Any time" },
+  { value: "7", label: "Last 7 days" },
+  { value: "30", label: "Last 30 days" },
+  { value: "90", label: "Last 90 days" },
 ];
 
 export const FilterBuilder = ({
@@ -82,7 +73,7 @@ export const FilterBuilder = ({
   onFilterGroupsChange,
 }: FilterBuilderProps) => {
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
-  const [selectedFilterType, setSelectedFilterType] = useState("all");
+  const [selectedType, setSelectedType] = useState<string>("property");
   const [fieldSearch, setFieldSearch] = useState("");
 
   const generateId = () => Math.random().toString(36).substring(2, 9);
@@ -92,18 +83,13 @@ export const FilterBuilder = ({
       id: generateId(),
       type,
       field,
-      operator: type === "event" ? "at_least" : "=",
-      value: type === "event" ? "1" : "",
-      frequency: type === "event" ? { operator: "at_least", value: 1 } : undefined,
+      operator: "=",
+      value: "",
     };
 
     if (filterGroups.length === 0) {
       onFilterGroupsChange([
-        {
-          id: generateId(),
-          logic: "AND",
-          conditions: [newCondition],
-        },
+        { id: generateId(), logic: "AND", conditions: [newCondition] },
       ]);
     } else {
       const updatedGroups = filterGroups.map((g, i) =>
@@ -114,27 +100,20 @@ export const FilterBuilder = ({
       onFilterGroupsChange(updatedGroups);
     }
     setFilterMenuOpen(false);
+    setFieldSearch("");
   };
 
   const removeCondition = (groupId: string, conditionId: string) => {
     const updateGroups = (groups: FilterGroup[]): FilterGroup[] =>
       groups.map((g) =>
         g.id === groupId
-          ? {
-              ...g,
-              conditions: g.conditions.filter((c) => c.id !== conditionId),
-            }
+          ? { ...g, conditions: g.conditions.filter((c) => c.id !== conditionId) }
           : { ...g, groups: g.groups ? updateGroups(g.groups) : undefined }
       );
-
     onFilterGroupsChange(updateGroups(filterGroups));
   };
 
-  const updateCondition = (
-    groupId: string,
-    conditionId: string,
-    updates: Partial<FilterCondition>
-  ) => {
+  const updateCondition = (groupId: string, conditionId: string, updates: Partial<FilterCondition>) => {
     const updateGroups = (groups: FilterGroup[]): FilterGroup[] =>
       groups.map((g) =>
         g.id === groupId
@@ -146,7 +125,6 @@ export const FilterBuilder = ({
             }
           : { ...g, groups: g.groups ? updateGroups(g.groups) : undefined }
       );
-
     onFilterGroupsChange(updateGroups(filterGroups));
   };
 
@@ -157,208 +135,125 @@ export const FilterBuilder = ({
           ? { ...g, logic: g.logic === "AND" ? "OR" : "AND" }
           : { ...g, groups: g.groups ? updateGroups(g.groups) : undefined }
       );
-
     onFilterGroupsChange(updateGroups(filterGroups));
   };
 
-  const filteredFields = availableFields.filter(f =>
-    fieldSearch === "" || 
-    f.column.toLowerCase().includes(fieldSearch.toLowerCase()) ||
-    f.table.toLowerCase().includes(fieldSearch.toLowerCase())
+  const filteredFields = availableFields.filter(
+    (f) =>
+      fieldSearch === "" ||
+      f.column.toLowerCase().includes(fieldSearch.toLowerCase()) ||
+      f.table.toLowerCase().includes(fieldSearch.toLowerCase())
   );
 
-  const getConditionTypeLabel = (type: FilterCondition["type"]) => {
-    switch (type) {
-      case "event": return "Performed";
-      case "property": return "Has property";
-      case "relation": return "Has relation";
-      case "audience": return "Is in";
-      case "journey": return "Is in";
-      case "trait": return "Has trait";
-      default: return "Has";
-    }
+  const getTypeIcon = (type: string) => {
+    const config = FILTER_TYPES.find((t) => t.id === type);
+    return config?.icon || Box;
   };
 
-  const renderCondition = (
-    group: FilterGroup,
-    condition: FilterCondition,
-    index: number
-  ) => {
-    const typeConfig = FILTER_TYPES.find(t => t.id === condition.type) || FILTER_TYPES[1];
-    const TypeIcon = typeConfig.icon;
+  const getTypeColor = (type: string) => {
+    const config = FILTER_TYPES.find((t) => t.id === type);
+    return config?.color || "bg-gray-500";
+  };
+
+  const renderCondition = (group: FilterGroup, condition: FilterCondition, index: number) => {
+    const TypeIcon = getTypeIcon(condition.type);
 
     return (
-      <div key={condition.id} className="relative">
-        {/* AND/OR connector */}
+      <div key={condition.id} className="animate-fade-in">
+        {/* AND/OR Connector */}
         {index > 0 && (
-          <div className="py-2">
+          <div className="flex items-center gap-2 py-2 pl-4">
             <button
               onClick={() => toggleGroupLogic(group.id)}
-              className="px-3 py-1 text-sm font-medium bg-white border border-border rounded shadow-sm hover:bg-muted/50"
+              className={cn(
+                "px-3 py-1 text-xs font-semibold rounded-full transition-colors",
+                group.logic === "AND"
+                  ? "bg-primary/10 text-primary hover:bg-primary/20"
+                  : "bg-amber-500/10 text-amber-600 hover:bg-amber-500/20"
+              )}
             >
               {group.logic}
             </button>
+            <div className="flex-1 h-px bg-border" />
           </div>
         )}
 
-        {/* Filter Card */}
-        <div className="bg-white border border-border rounded-lg overflow-hidden">
-          {/* Left accent bar */}
-          <div className="flex">
-            <div className="w-1 bg-[hsl(162,72%,50%)]" />
-            <div className="flex-1 p-4">
-              {/* Main condition row */}
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-sm text-muted-foreground">{getConditionTypeLabel(condition.type)}</span>
-                
-                {/* Field badge */}
-                <Badge 
-                  variant="outline" 
-                  className="h-8 px-3 gap-2 bg-white border-border hover:bg-muted/30 cursor-default"
-                >
-                  <TypeIcon className="w-4 h-4 text-purple-500" />
-                  <span className="font-medium">{condition.field || "Select field"}</span>
-                </Badge>
+        {/* Condition Card */}
+        <div className="group relative bg-muted/30 border border-border rounded-lg p-3 hover:border-primary/30 transition-colors">
+          <div className="flex items-start gap-3">
+            {/* Drag handle */}
+            <div className="pt-1 cursor-grab opacity-0 group-hover:opacity-100 transition-opacity">
+              <GripVertical className="w-4 h-4 text-muted-foreground" />
+            </div>
 
-                {/* Frequency (for events) */}
-                {condition.type === "event" && (
-                  <Badge 
-                    variant="outline" 
-                    className="h-8 px-3 bg-white border-border"
-                  >
-                    <Select
-                      value={condition.frequency?.operator || "at_least"}
-                      onValueChange={(value) =>
-                        updateCondition(group.id, condition.id, {
-                          frequency: { ...condition.frequency!, operator: value },
-                        })
-                      }
-                    >
-                      <SelectTrigger className="border-0 h-6 w-auto p-0 shadow-none focus:ring-0">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-popover">
-                        {FREQUENCY_OPERATORS.map((op) => (
-                          <SelectItem key={op.value} value={op.value}>
-                            {op.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Input
-                      type="number"
-                      value={condition.frequency?.value || 1}
-                      onChange={(e) =>
-                        updateCondition(group.id, condition.id, {
-                          frequency: { ...condition.frequency!, value: parseInt(e.target.value) || 1 },
-                        })
-                      }
-                      className="border-0 h-6 w-12 p-0 shadow-none focus-visible:ring-0 text-center"
-                    />
-                    <span className="text-sm">time</span>
-                  </Badge>
-                )}
+            {/* Type indicator */}
+            <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-white", getTypeColor(condition.type))}>
+              <TypeIcon className="w-4 h-4" />
+            </div>
 
-                {/* Operator and value (for properties) */}
-                {condition.type === "property" && (
-                  <>
-                    <Badge 
-                      variant="outline" 
-                      className="h-8 px-3 bg-white border-border"
-                    >
-                      <Select
-                        value={condition.operator}
-                        onValueChange={(value) =>
-                          updateCondition(group.id, condition.id, { operator: value })
-                        }
-                      >
-                        <SelectTrigger className="border-0 h-6 w-auto p-0 shadow-none focus:ring-0">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="bg-popover">
-                          {OPERATORS.map((op) => (
-                            <SelectItem key={op.value} value={op.value}>
-                              {op.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {!["IS NULL", "IS NOT NULL"].includes(condition.operator) && (
-                        <Input
-                          placeholder="value"
-                          value={condition.value}
-                          onChange={(e) =>
-                            updateCondition(group.id, condition.id, { value: e.target.value })
-                          }
-                          className="border-0 h-6 w-32 p-0 shadow-none focus-visible:ring-0"
-                        />
-                      )}
-                    </Badge>
-                  </>
-                )}
+            {/* Condition content */}
+            <div className="flex-1 flex flex-wrap items-center gap-2">
+              {/* Field */}
+              <Badge variant="outline" className="h-8 px-3 font-medium bg-card">
+                {condition.field || "Select field"}
+              </Badge>
 
-                {/* Actions */}
-                <div className="flex items-center gap-1 ml-auto">
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
-                    <MoreHorizontal className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-destructive/70 hover:text-destructive"
-                    onClick={() => removeCondition(group.id, condition.id)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
+              {/* Operator */}
+              <Select
+                value={condition.operator}
+                onValueChange={(value) => updateCondition(group.id, condition.id, { operator: value })}
+              >
+                <SelectTrigger className="w-auto h-8 px-3 text-sm bg-card border-border">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-popover">
+                  {OPERATORS.map((op) => (
+                    <SelectItem key={op.value} value={op.value}>
+                      {op.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-              {/* Time constraint row */}
-              {condition.timeConstraint && (
-                <div className="mt-3 flex items-center gap-2">
-                  <Badge 
-                    variant="outline" 
-                    className="h-7 px-3 bg-white border-border gap-2"
-                  >
-                    <span>Within</span>
-                    <span className="font-medium">{condition.timeConstraint.value}</span>
-                    <button
-                      onClick={() =>
-                        updateCondition(group.id, condition.id, { timeConstraint: undefined })
-                      }
-                      className="ml-1 hover:text-destructive"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </Badge>
-                </div>
+              {/* Value */}
+              {!["IS NULL", "IS NOT NULL"].includes(condition.operator) && (
+                <Input
+                  placeholder="Enter value..."
+                  value={condition.value}
+                  onChange={(e) => updateCondition(group.id, condition.id, { value: e.target.value })}
+                  className="w-40 h-8 text-sm bg-card"
+                />
               )}
 
-              {/* Additional options */}
-              <div className="mt-3 flex items-center gap-4 text-sm text-muted-foreground">
-                {condition.type === "event" && (
-                  <>
-                    <button className="flex items-center gap-1 hover:text-foreground">
-                      <Plus className="w-3.5 h-3.5" />
-                      Where event property is...
-                    </button>
-                    <span className="text-border">|</span>
-                    <button className="flex items-center gap-1 hover:text-foreground">
-                      <span className="text-muted-foreground">≡</span>
-                      Then performed...
-                    </button>
-                  </>
-                )}
-              </div>
-
-              {/* Calculate size */}
-              <div className="mt-3 pt-3 border-t border-border">
-                <button className="flex items-center gap-2 text-sm text-[hsl(162,72%,40%)] hover:text-[hsl(162,72%,30%)]">
-                  <Users className="w-4 h-4" />
-                  Calculate size
-                </button>
-              </div>
+              {/* Time constraint for events */}
+              {condition.type === "event" && (
+                <Select
+                  value={condition.timeConstraint || ""}
+                  onValueChange={(value) => updateCondition(group.id, condition.id, { timeConstraint: value })}
+                >
+                  <SelectTrigger className="w-auto h-8 px-3 text-sm bg-card border-border">
+                    <SelectValue placeholder="Time range" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover">
+                    {TIME_CONSTRAINTS.map((tc) => (
+                      <SelectItem key={tc.value} value={tc.value}>
+                        {tc.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
+
+            {/* Delete button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+              onClick={() => removeCondition(group.id, condition.id)}
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
           </div>
         </div>
       </div>
@@ -367,65 +262,59 @@ export const FilterBuilder = ({
 
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-medium text-foreground">Include in audience if...</h3>
-      
-      {filterGroups.map((group) => (
-        <div key={group.id} className="space-y-0">
-          {group.conditions.map((condition, index) =>
-            renderCondition(group, condition, index)
-          )}
+      {/* Conditions */}
+      {filterGroups.length > 0 && (
+        <div className="space-y-0">
+          {filterGroups.map((group) => (
+            <div key={group.id} className="space-y-0">
+              {group.conditions.map((condition, index) =>
+                renderCondition(group, condition, index)
+              )}
+            </div>
+          ))}
         </div>
-      ))}
+      )}
 
-      {/* Final AND connector and Add filter button */}
-      {filterGroups.length > 0 && filterGroups[0].conditions.length > 0 && (
-        <div className="py-2">
-          <button
-            onClick={() => filterGroups[0] && toggleGroupLogic(filterGroups[0].id)}
-            className="px-3 py-1 text-sm font-medium bg-white border border-border rounded shadow-sm hover:bg-muted/50"
-          >
-            {filterGroups[0]?.logic || "AND"}
-          </button>
+      {/* Empty state */}
+      {filterGroups.length === 0 && (
+        <div className="text-center py-8 px-4 border-2 border-dashed border-border rounded-lg bg-muted/20">
+          <Users className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+          <p className="text-sm text-muted-foreground mb-1">No conditions defined yet</p>
+          <p className="text-xs text-muted-foreground">Add filters to define your audience</p>
         </div>
       )}
 
       {/* Add filter button */}
       <Popover open={filterMenuOpen} onOpenChange={setFilterMenuOpen}>
         <PopoverTrigger asChild>
-          <Button 
-            variant="outline" 
-            className="h-9 bg-[hsl(162,72%,95%)] border-[hsl(162,72%,80%)] text-[hsl(162,72%,30%)] hover:bg-[hsl(162,72%,90%)]"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add filter
+          <Button variant="outline" className="gap-2 border-dashed">
+            <Plus className="w-4 h-4" />
+            Add Condition
           </Button>
         </PopoverTrigger>
-        <PopoverContent 
-          className="w-[700px] p-0 bg-popover" 
-          align="start"
-          sideOffset={8}
-        >
+        <PopoverContent className="w-[500px] p-0 bg-popover" align="start" sideOffset={8}>
           <div className="flex divide-x divide-border">
             {/* Filter types */}
-            <div className="w-60 py-2">
+            <div className="w-48 p-2">
+              <p className="px-2 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Filter Type
+              </p>
               {FILTER_TYPES.map((type) => {
                 const Icon = type.icon;
                 return (
                   <button
                     key={type.id}
-                    onClick={() => setSelectedFilterType(type.id)}
+                    onClick={() => setSelectedType(type.id)}
                     className={cn(
-                      "w-full flex items-start gap-3 px-4 py-3 hover:bg-muted/50 text-left",
-                      selectedFilterType === type.id && "bg-muted/50"
+                      "w-full flex items-center gap-3 px-2 py-2 rounded-md text-left transition-colors",
+                      selectedType === type.id ? "bg-primary/10 text-primary" : "hover:bg-muted/50"
                     )}
                   >
-                    <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center text-white", type.color)}>
-                      <Icon className="w-4 h-4" />
+                    <div className={cn("w-7 h-7 rounded flex items-center justify-center text-white", type.color)}>
+                      <Icon className="w-3.5 h-3.5" />
                     </div>
                     <div>
-                      <div className={cn("text-sm font-medium", selectedFilterType === type.id && "text-[hsl(162,72%,40%)]")}>
-                        {type.label}
-                      </div>
+                      <div className="text-sm font-medium">{type.label}</div>
                       <div className="text-xs text-muted-foreground">{type.description}</div>
                     </div>
                   </button>
@@ -435,48 +324,35 @@ export const FilterBuilder = ({
 
             {/* Fields list */}
             <div className="flex-1">
-              <div className="p-3 border-b border-border">
+              <div className="p-2 border-b border-border">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
-                    placeholder="Search all filters..."
+                    placeholder="Search fields..."
                     value={fieldSearch}
                     onChange={(e) => setFieldSearch(e.target.value)}
-                    className="pl-9 h-9 bg-muted/30 border-0"
+                    className="pl-8 h-8 text-sm"
                   />
                 </div>
               </div>
-              <div className="max-h-80 overflow-auto py-2">
-                {filteredFields.map((field) => (
-                  <button
-                    key={`${field.table}.${field.column}`}
-                    onClick={() => addCondition(
-                      selectedFilterType === "all" ? "property" : selectedFilterType as FilterCondition["type"],
-                      `${field.table}.${field.column}`
-                    )}
-                    className="w-full flex items-center gap-3 px-4 py-2 hover:bg-muted/50 text-left"
-                  >
-                    <div className="w-6 h-6 rounded bg-purple-100 flex items-center justify-center">
-                      <UserCheck className="w-3.5 h-3.5 text-purple-600" />
-                    </div>
-                    <span className="text-sm">{field.column.toUpperCase()}</span>
-                  </button>
-                ))}
+              <div className="max-h-64 overflow-auto p-2">
+                {filteredFields.length > 0 ? (
+                  filteredFields.map((field) => (
+                    <button
+                      key={`${field.table}.${field.column}`}
+                      onClick={() => addCondition(selectedType as FilterCondition["type"], `${field.table}.${field.column}`)}
+                      className="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted/50 text-left"
+                    >
+                      <UserCheck className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-sm">{field.table}.</span>
+                      <span className="text-sm font-medium">{field.column}</span>
+                      <span className="text-xs text-muted-foreground ml-auto">{field.type}</span>
+                    </button>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-4">No fields found</p>
+                )}
               </div>
-            </div>
-
-            {/* Preview panel */}
-            <div className="w-60 p-6 flex flex-col items-center justify-center text-center bg-muted/20">
-              <div className="mb-4">
-                <svg width="120" height="80" viewBox="0 0 120 80" className="text-[hsl(162,72%,80%)]">
-                  <rect x="10" y="10" width="40" height="60" rx="4" fill="currentColor" opacity="0.3" />
-                  <rect x="55" y="10" width="55" height="15" rx="2" fill="currentColor" opacity="0.5" />
-                  <rect x="55" y="30" width="45" height="10" rx="2" fill="currentColor" opacity="0.3" />
-                  <rect x="55" y="45" width="50" height="10" rx="2" fill="currentColor" opacity="0.3" />
-                  <rect x="55" y="60" width="40" height="10" rx="2" fill="currentColor" opacity="0.3" />
-                </svg>
-              </div>
-              <p className="text-sm text-muted-foreground">Hover on a filter to view its details</p>
             </div>
           </div>
         </PopoverContent>
