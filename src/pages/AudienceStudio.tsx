@@ -4,7 +4,7 @@ import { CampaignSidebar } from "@/components/CampaignSidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Card } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -20,11 +20,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import { Plus, Search, MoreHorizontal, Copy, Archive, Edit, Users, ChevronRight, ChevronLeft, Folder, Filter } from "lucide-react";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Plus, Search, MoreHorizontal, Copy, Archive, Edit, Users, TrendingUp, Clock, AlertCircle, Filter, SlidersHorizontal } from "lucide-react";
 
 interface Audience {
   id: string;
@@ -33,12 +35,11 @@ interface Audience {
   status: "Draft" | "Active";
   baseEntity: string;
   size: number | null;
-  syncingTo: string[];
-  lastSyncRun: string | null;
   lastModified: string;
   modifiedBy: string;
   version: number;
-  isRealtime?: boolean;
+  trend?: "up" | "down" | "stable";
+  trendValue?: string;
 }
 
 const MOCK_AUDIENCES: Audience[] = [
@@ -49,11 +50,11 @@ const MOCK_AUDIENCES: Audience[] = [
     status: "Active",
     baseEntity: "Customers",
     size: 1247,
-    syncingTo: ["facebook", "google"],
-    lastSyncRun: "2 hours ago",
     lastModified: "2025-12-15 14:30",
-    modifiedBy: "JS",
+    modifiedBy: "John Smith",
     version: 3,
+    trend: "up",
+    trendValue: "+12%",
   },
   {
     id: "aud-002",
@@ -62,12 +63,11 @@ const MOCK_AUDIENCES: Audience[] = [
     status: "Active",
     baseEntity: "Customers",
     size: 3420,
-    syncingTo: [],
-    lastSyncRun: null,
     lastModified: "2025-12-14 09:15",
-    modifiedBy: "SJ",
+    modifiedBy: "Sarah Johnson",
     version: 1,
-    isRealtime: true,
+    trend: "down",
+    trendValue: "-5%",
   },
   {
     id: "aud-003",
@@ -76,10 +76,8 @@ const MOCK_AUDIENCES: Audience[] = [
     status: "Draft",
     baseEntity: "Customers",
     size: null,
-    syncingTo: [],
-    lastSyncRun: null,
     lastModified: "2025-12-13 16:45",
-    modifiedBy: "MC",
+    modifiedBy: "Mike Chen",
     version: 1,
   },
   {
@@ -89,11 +87,11 @@ const MOCK_AUDIENCES: Audience[] = [
     status: "Active",
     baseEntity: "Customers",
     size: 755,
-    syncingTo: ["braze"],
-    lastSyncRun: "5 days ago",
     lastModified: "2025-12-12 11:20",
-    modifiedBy: "ED",
+    modifiedBy: "Emily Davis",
     version: 2,
+    trend: "stable",
+    trendValue: "0%",
   },
   {
     id: "aud-005",
@@ -102,251 +100,266 @@ const MOCK_AUDIENCES: Audience[] = [
     status: "Draft",
     baseEntity: "Customers",
     size: null,
-    syncingTo: [],
-    lastSyncRun: null,
     lastModified: "2025-12-10 08:00",
-    modifiedBy: "JS",
+    modifiedBy: "John Smith",
     version: 1,
   },
-];
-
-const FOLDERS = [
-  { name: "All audiences", count: 5 },
-];
-
-const FILTER_OPTIONS = [
-  { label: "Parent model", options: ["Customers", "Users", "Contacts"] },
-  { label: "Source", options: ["Snowflake", "BigQuery", "Redshift"] },
-  { label: "Created by", options: ["John Smith", "Sarah Johnson", "Mike Chen"] },
-  { label: "Labels", options: ["High value", "Engagement", "Churn risk"] },
 ];
 
 const AudienceStudio = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [audiences] = useState<Audience[]>(MOCK_AUDIENCES);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [expandedFilters, setExpandedFilters] = useState<string[]>([]);
+  const [statusFilter, setStatusFilter] = useState<string>("all");
 
-  const filteredAudiences = audiences.filter(
-    (audience) =>
+  const filteredAudiences = audiences.filter((audience) => {
+    const matchesSearch =
       audience.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      audience.description.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+      audience.description.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus =
+      statusFilter === "all" || audience.status.toLowerCase() === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
   const stats = {
-    all: audiences.length,
-    recentlyCreated: audiences.filter(a => a.lastModified > "2025-12-13").length,
-    recentlySynced: audiences.filter(a => a.lastSyncRun).length,
-    unhealthySyncs: 0,
-    inactive: audiences.filter(a => a.status === "Draft").length,
-  };
-
-  const toggleFilter = (label: string) => {
-    setExpandedFilters(prev =>
-      prev.includes(label)
-        ? prev.filter(f => f !== label)
-        : [...prev, label]
-    );
+    total: audiences.length,
+    active: audiences.filter((a) => a.status === "Active").length,
+    draft: audiences.filter((a) => a.status === "Draft").length,
+    totalReach: audiences.reduce((sum, a) => sum + (a.size || 0), 0),
   };
 
   return (
     <div className="flex min-h-screen bg-background">
       <CampaignSidebar />
-      <main className="flex-1 flex flex-col">
+      <main className="flex-1 p-8">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 pb-4">
-          <h1 className="text-2xl font-semibold text-foreground">All audiences</h1>
-          <Button onClick={() => navigate("/people/audience-studio/create")} className="bg-[hsl(162,72%,40%)] hover:bg-[hsl(162,72%,35%)]">
-            Add audience
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Audience Studio</h1>
+            <p className="text-muted-foreground mt-1">
+              Build and manage reusable customer segments
+            </p>
+          </div>
+          <Button onClick={() => navigate("/people/audience-studio/create")}>
+            <Plus className="w-4 h-4 mr-2" />
+            Create Audience
           </Button>
         </div>
 
         {/* Stats Cards */}
-        <div className="px-6 pb-4">
-          <div className="flex gap-1 bg-card border border-border rounded-lg p-1 w-fit">
-            <div className="px-4 py-2 text-center min-w-[120px]">
-              <div className="text-xs text-muted-foreground">All audiences</div>
-              <div className="text-xl font-semibold text-foreground">{stats.all}</div>
+        <div className="grid grid-cols-4 gap-4 mb-8">
+          <Card className="p-4 border-l-4 border-l-primary">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Total Audiences</p>
+                <p className="text-2xl font-bold text-foreground">{stats.total}</p>
+              </div>
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <Users className="w-5 h-5 text-primary" />
+              </div>
             </div>
-            <div className="w-px bg-border" />
-            <div className="px-4 py-2 text-center min-w-[120px]">
-              <div className="text-xs text-muted-foreground">Recently created</div>
-              <div className="text-xl font-semibold text-[hsl(162,72%,40%)]">{stats.recentlyCreated}</div>
+          </Card>
+          <Card className="p-4 border-l-4 border-l-[hsl(var(--status-completed))]">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Active</p>
+                <p className="text-2xl font-bold text-foreground">{stats.active}</p>
+              </div>
+              <div className="w-10 h-10 rounded-full bg-[hsl(var(--status-completed-bg))] flex items-center justify-center">
+                <TrendingUp className="w-5 h-5 text-[hsl(var(--status-completed))]" />
+              </div>
             </div>
-            <div className="w-px bg-border" />
-            <div className="px-4 py-2 text-center min-w-[120px]">
-              <div className="text-xs text-muted-foreground">Recently synced</div>
-              <div className="text-xl font-semibold text-[hsl(162,72%,40%)]">{stats.recentlySynced}</div>
+          </Card>
+          <Card className="p-4 border-l-4 border-l-[hsl(var(--status-sending))]">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Drafts</p>
+                <p className="text-2xl font-bold text-foreground">{stats.draft}</p>
+              </div>
+              <div className="w-10 h-10 rounded-full bg-[hsl(var(--status-sending-bg))] flex items-center justify-center">
+                <Clock className="w-5 h-5 text-[hsl(var(--status-sending))]" />
+              </div>
             </div>
-            <div className="w-px bg-border" />
-            <div className="px-4 py-2 text-center min-w-[120px]">
-              <div className="text-xs text-muted-foreground">With unhealthy syncs</div>
-              <div className="text-xl font-semibold text-foreground">{stats.unhealthySyncs}</div>
+          </Card>
+          <Card className="p-4 border-l-4 border-l-primary">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Total Reach</p>
+                <p className="text-2xl font-bold text-foreground">
+                  {stats.totalReach.toLocaleString()}
+                </p>
+              </div>
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <Users className="w-5 h-5 text-primary" />
+              </div>
             </div>
-            <div className="w-px bg-border" />
-            <div className="px-4 py-2 text-center min-w-[120px]">
-              <div className="text-xs text-muted-foreground">Inactive</div>
-              <div className="text-xl font-semibold text-foreground">{stats.inactive}</div>
-            </div>
-          </div>
+          </Card>
         </div>
 
-        {/* Main content with sidebar */}
-        <div className="flex-1 flex px-6 pb-6 gap-0">
-          {/* Left Sidebar - Filters */}
-          <div className={`border border-border bg-card rounded-l-lg transition-all ${sidebarCollapsed ? 'w-0 overflow-hidden border-0' : 'w-64'}`}>
-            {!sidebarCollapsed && (
-              <div className="p-4 space-y-6">
-                {/* Search */}
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search audiences..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9 h-9 text-sm"
-                  />
-                </div>
+        {/* Filters Row */}
+        <div className="flex items-center gap-4 mb-6">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Search audiences..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[150px]">
+              <Filter className="w-4 h-4 mr-2" />
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent className="bg-popover">
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="draft">Draft</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button variant="outline" size="icon">
+            <SlidersHorizontal className="w-4 h-4" />
+          </Button>
+        </div>
 
-                {/* Folders */}
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Folders</span>
-                    <Button variant="outline" size="sm" className="h-7 text-xs">New folder</Button>
-                  </div>
-                  <div className="space-y-1">
-                    {FOLDERS.map(folder => (
-                      <div key={folder.name} className="flex items-center gap-2 px-2 py-1.5 rounded bg-[hsl(162,72%,95%)] text-[hsl(162,72%,30%)]">
-                        <Users className="w-4 h-4" />
-                        <span className="text-sm flex-1">{folder.name}</span>
-                        <span className="text-xs bg-white/50 px-1.5 py-0.5 rounded">{folder.count}</span>
+        {/* Table */}
+        <Card className="overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/50 hover:bg-muted/50">
+                <TableHead className="font-semibold">Audience</TableHead>
+                <TableHead className="font-semibold">Status</TableHead>
+                <TableHead className="font-semibold">Size</TableHead>
+                <TableHead className="font-semibold">Base Entity</TableHead>
+                <TableHead className="font-semibold">Last Modified</TableHead>
+                <TableHead className="w-[50px]"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredAudiences.map((audience) => (
+                <TableRow
+                  key={audience.id}
+                  className="cursor-pointer hover:bg-muted/30 transition-colors"
+                  onClick={() => navigate(`/people/audience-studio/edit/${audience.id}`)}
+                >
+                  <TableCell>
+                    <div className="flex items-start gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <Users className="w-4 h-4 text-primary" />
                       </div>
-                    ))}
-                    <div className="text-xs text-muted-foreground px-2 py-1">No folders</div>
-                  </div>
-                </div>
+                      <div className="min-w-0">
+                        <div className="font-medium text-foreground truncate">
+                          {audience.name}
+                        </div>
+                        <div className="text-sm text-muted-foreground truncate max-w-[300px]">
+                          {audience.description}
+                        </div>
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={audience.status === "Active" ? "default" : "secondary"}
+                      className={
+                        audience.status === "Active"
+                          ? "bg-[hsl(var(--status-completed))] hover:bg-[hsl(var(--status-completed))]"
+                          : ""
+                      }
+                    >
+                      {audience.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {audience.size ? (
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">
+                          {audience.size.toLocaleString()}
+                        </span>
+                        {audience.trend && (
+                          <span
+                            className={`text-xs ${
+                              audience.trend === "up"
+                                ? "text-[hsl(var(--status-completed))]"
+                                : audience.trend === "down"
+                                ? "text-[hsl(var(--status-failed))]"
+                                : "text-muted-foreground"
+                            }`}
+                          >
+                            {audience.trendValue}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="font-normal">
+                      {audience.baseEntity}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm">{audience.lastModified.split(" ")[0]}</div>
+                    <div className="text-xs text-muted-foreground">
+                      by {audience.modifiedBy}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="bg-popover">
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/people/audience-studio/edit/${audience.id}`);
+                          }}
+                        >
+                          <Edit className="w-4 h-4 mr-2" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={(e) => e.stopPropagation()}>
+                          <Copy className="w-4 h-4 mr-2" />
+                          Duplicate
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={(e) => e.stopPropagation()}
+                          className="text-destructive"
+                        >
+                          <Archive className="w-4 h-4 mr-2" />
+                          Archive
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
 
-                {/* Saved Filters */}
-                <div>
-                  <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Saved Filters</div>
-                  <div className="flex items-center gap-2 px-2 py-1.5 text-muted-foreground">
-                    <Filter className="w-4 h-4" />
-                    <span className="text-sm">Default</span>
-                  </div>
-                </div>
-
-                {/* Filter By */}
-                <div>
-                  <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Filter By</div>
-                  <div className="space-y-1">
-                    {FILTER_OPTIONS.map(filter => (
-                      <Collapsible
-                        key={filter.label}
-                        open={expandedFilters.includes(filter.label)}
-                        onOpenChange={() => toggleFilter(filter.label)}
-                      >
-                        <CollapsibleTrigger className="flex items-center gap-2 w-full px-2 py-1.5 hover:bg-muted/50 rounded text-sm">
-                          <ChevronRight className={`w-4 h-4 text-muted-foreground transition-transform ${expandedFilters.includes(filter.label) ? 'rotate-90' : ''}`} />
-                          {filter.label}
-                        </CollapsibleTrigger>
-                        <CollapsibleContent className="pl-6 space-y-1 py-1">
-                          {filter.options.map(opt => (
-                            <label key={opt} className="flex items-center gap-2 px-2 py-1 hover:bg-muted/30 rounded cursor-pointer text-sm text-muted-foreground">
-                              <Checkbox className="h-4 w-4" />
-                              {opt}
-                            </label>
-                          ))}
-                        </CollapsibleContent>
-                      </Collapsible>
-                    ))}
-                  </div>
-                </div>
-              </div>
+        {/* Empty State */}
+        {filteredAudiences.length === 0 && (
+          <div className="text-center py-12">
+            <div className="w-16 h-16 rounded-full bg-muted mx-auto mb-4 flex items-center justify-center">
+              <Users className="w-8 h-8 text-muted-foreground" />
+            </div>
+            <h3 className="text-lg font-medium text-foreground mb-1">No audiences found</h3>
+            <p className="text-muted-foreground mb-4">
+              {searchQuery ? "Try adjusting your search or filters" : "Create your first audience to get started"}
+            </p>
+            {!searchQuery && (
+              <Button onClick={() => navigate("/people/audience-studio/create")}>
+                <Plus className="w-4 h-4 mr-2" />
+                Create Audience
+              </Button>
             )}
           </div>
-
-          {/* Toggle sidebar button */}
-          <button
-            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="flex items-center justify-center w-6 bg-card border-y border-border hover:bg-muted/50"
-          >
-            {sidebarCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-          </button>
-
-          {/* Table */}
-          <div className="flex-1 bg-card border border-l-0 border-border rounded-r-lg overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/30 hover:bg-muted/30">
-                  <TableHead className="w-10">
-                    <Checkbox />
-                  </TableHead>
-                  <TableHead className="font-medium">Name</TableHead>
-                  <TableHead className="font-medium">Size</TableHead>
-                  <TableHead className="font-medium">Syncing to</TableHead>
-                  <TableHead className="font-medium">Last sync run</TableHead>
-                  <TableHead className="font-medium">Last updated ↓</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredAudiences.map((audience) => (
-                  <TableRow
-                    key={audience.id}
-                    className="cursor-pointer hover:bg-muted/20"
-                    onClick={() => navigate(`/people/audience-studio/edit/${audience.id}`)}
-                  >
-                    <TableCell onClick={(e) => e.stopPropagation()}>
-                      <Checkbox />
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-col">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-foreground">{audience.name}</span>
-                          {audience.isRealtime && (
-                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 bg-[hsl(162,72%,95%)] text-[hsl(162,72%,30%)] border-[hsl(162,72%,80%)]">
-                              ⚡ Realtime audience
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1.5 text-muted-foreground">
-                        <Users className="w-4 h-4" />
-                        {audience.size ? audience.size.toLocaleString() : "--"}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {audience.syncingTo.length > 0 ? (
-                        <div className="flex items-center gap-1">
-                          {audience.syncingTo.map((sync) => (
-                            <div key={sync} className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-xs">
-                              {sync[0].toUpperCase()}
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground">No syncs</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {audience.lastSyncRun || "--"}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <span className="text-muted-foreground">{audience.lastModified.split(" ")[0]}</span>
-                        <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-xs font-medium">
-                          {audience.modifiedBy}
-                        </div>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </div>
+        )}
       </main>
     </div>
   );

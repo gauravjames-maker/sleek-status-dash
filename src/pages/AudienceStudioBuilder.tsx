@@ -5,6 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -12,70 +15,86 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FilterBuilder, FilterGroup } from "@/components/audience-studio/FilterBuilder";
+import { PreviewPanel } from "@/components/audience-studio/PreviewPanel";
 import {
   ArrowLeft,
+  Save,
+  Eye,
+  Database,
   Users,
-  BarChart2,
-  MoreHorizontal,
-  Undo,
-  Redo,
-  ChevronDown,
-  PenLine,
+  RefreshCw,
+  Info,
+  Tag,
+  X,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 // Mock data
 const ENTITIES = [
-  { value: "users", label: "users" },
-  { value: "customers", label: "customers" },
-  { value: "contacts", label: "contacts" },
+  { value: "customers", label: "Customers" },
+  { value: "users", label: "Users" },
+  { value: "contacts", label: "Contacts" },
 ];
 
-const SCHEMA: Record<string, { name: string; type: string; isPrimaryKey?: boolean; isForeignKey?: boolean }[]> = {
-  users: [
-    { name: "user_id", type: "INT", isPrimaryKey: true },
+const SCHEMA: Record<string, { name: string; type: string }[]> = {
+  customers: [
+    { name: "customer_id", type: "INT" },
     { name: "email", type: "VARCHAR" },
     { name: "name", type: "VARCHAR" },
     { name: "created_at", type: "TIMESTAMP" },
     { name: "status", type: "VARCHAR" },
-    { name: "industry", type: "VARCHAR" },
-  ],
-  customers: [
-    { name: "customer_id", type: "INT", isPrimaryKey: true },
-    { name: "email", type: "VARCHAR" },
-    { name: "name", type: "VARCHAR" },
     { name: "total_spend", type: "DECIMAL" },
     { name: "last_order_date", type: "DATE" },
   ],
+  users: [
+    { name: "user_id", type: "INT" },
+    { name: "email", type: "VARCHAR" },
+    { name: "name", type: "VARCHAR" },
+    { name: "signup_date", type: "TIMESTAMP" },
+  ],
   orders: [
-    { name: "order_id", type: "INT", isPrimaryKey: true },
-    { name: "customer_id", type: "INT", isForeignKey: true },
+    { name: "order_id", type: "INT" },
+    { name: "customer_id", type: "INT" },
     { name: "order_date", type: "TIMESTAMP" },
     { name: "total_amount", type: "DECIMAL" },
+    { name: "status", type: "VARCHAR" },
   ],
   events: [
-    { name: "event_id", type: "INT", isPrimaryKey: true },
-    { name: "user_id", type: "INT", isForeignKey: true },
+    { name: "event_id", type: "INT" },
+    { name: "customer_id", type: "INT" },
     { name: "event_type", type: "VARCHAR" },
     { name: "event_date", type: "TIMESTAMP" },
   ],
 };
+
+const SAMPLE_DATA = [
+  { customer_id: 1001, email: "john@example.com", name: "John Smith", total_spend: 1250.0 },
+  { customer_id: 1002, email: "sarah@example.com", name: "Sarah Johnson", total_spend: 890.5 },
+  { customer_id: 1003, email: "mike@example.com", name: "Mike Chen", total_spend: 2100.0 },
+  { customer_id: 1004, email: "emily@example.com", name: "Emily Davis", total_spend: 450.0 },
+  { customer_id: 1005, email: "alex@example.com", name: "Alex Wilson", total_spend: 3200.0 },
+];
+
+const TAGS = ["High value", "Engagement", "Churn risk", "New user", "VIP", "Retention"];
 
 const AudienceStudioBuilder = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const isEditing = Boolean(id);
 
-  const [audienceName, setAudienceName] = useState(isEditing ? "Purchase Last 30 Days" : "New audience");
-  const [audienceDescription, setAudienceDescription] = useState("");
-  const [parentModel, setParentModel] = useState("users");
+  const [primaryEntity, setPrimaryEntity] = useState("customers");
   const [filterGroups, setFilterGroups] = useState<FilterGroup[]>([]);
-  const [activeTab, setActiveTab] = useState("definition");
-  const [isEditingName, setIsEditingName] = useState(false);
+  const [audienceName, setAudienceName] = useState(isEditing ? "High-value customers" : "");
+  const [audienceDescription, setAudienceDescription] = useState(
+    isEditing ? "Customers with total order value > $500 in the last 90 days" : ""
+  );
+  const [selectedTags, setSelectedTags] = useState<string[]>(isEditing ? ["High value"] : []);
+  const [isActive, setIsActive] = useState(isEditing);
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
 
-  const allSelectedTables = [parentModel, "orders", "events"];
+  const allSelectedTables = [primaryEntity, "orders", "events"];
 
   const availableFields = allSelectedTables.flatMap((table) =>
     (SCHEMA[table] || []).map((col) => ({
@@ -85,7 +104,21 @@ const AudienceStudioBuilder = () => {
     }))
   );
 
+  const handleRefreshPreview = () => {
+    setIsPreviewLoading(true);
+    setTimeout(() => setIsPreviewLoading(false), 1000);
+  };
+
   const handleSave = () => {
+    if (!audienceName.trim()) {
+      toast({
+        title: "Name required",
+        description: "Please enter a name for this audience",
+        variant: "destructive",
+      });
+      return;
+    }
+
     toast({
       title: isEditing ? "Audience updated" : "Audience created",
       description: `"${audienceName}" has been saved successfully`,
@@ -93,181 +126,185 @@ const AudienceStudioBuilder = () => {
     navigate("/people/audience-studio");
   };
 
+  const toggleTag = (tag: string) => {
+    setSelectedTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+    );
+  };
+
+  const conditionCount = filterGroups.reduce((sum, g) => sum + g.conditions.length, 0);
+
   return (
-    <div className="flex min-h-screen bg-[hsl(210,20%,98%)]">
+    <div className="flex min-h-screen bg-background">
       <CampaignSidebar />
       <main className="flex-1 flex flex-col">
         {/* Header */}
-        <div className="bg-white border-b border-border px-6 py-4">
+        <div className="border-b border-border p-4 bg-card">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => navigate("/people/audience-studio")}
-                className="text-muted-foreground"
               >
                 <ArrowLeft className="w-5 h-5" />
               </Button>
               <div>
-                {/* Editable title */}
-                <div className="flex items-center gap-2">
-                  {isEditingName ? (
-                    <Input
-                      value={audienceName}
-                      onChange={(e) => setAudienceName(e.target.value)}
-                      onBlur={() => setIsEditingName(false)}
-                      onKeyDown={(e) => e.key === "Enter" && setIsEditingName(false)}
-                      className="text-2xl font-semibold h-auto py-0 px-1 border-0 border-b-2 border-primary rounded-none focus-visible:ring-0"
-                      autoFocus
-                    />
-                  ) : (
-                    <h1 
-                      className="text-2xl font-semibold cursor-pointer hover:text-muted-foreground flex items-center gap-2"
-                      onClick={() => setIsEditingName(true)}
-                    >
-                      {audienceName}
-                      <PenLine className="w-4 h-4 text-muted-foreground" />
-                    </h1>
-                  )}
-                </div>
-                {/* Description */}
-                <Input
-                  placeholder="Add a description..."
-                  value={audienceDescription}
-                  onChange={(e) => setAudienceDescription(e.target.value)}
-                  className="mt-1 text-sm text-muted-foreground border-0 p-0 h-auto shadow-none focus-visible:ring-0 placeholder:text-muted-foreground"
-                />
-                {/* Parent model info */}
-                <div className="flex items-center gap-2 mt-2 text-sm">
-                  <div className="w-5 h-5 bg-blue-100 rounded flex items-center justify-center">
-                    <span className="text-blue-600 text-xs">❄</span>
-                  </div>
-                  <Select value={parentModel} onValueChange={setParentModel}>
-                    <SelectTrigger className="w-auto h-auto border-0 p-0 shadow-none focus:ring-0 text-[hsl(162,72%,40%)] font-medium">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-popover">
-                      {ENTITIES.map((entity) => (
-                        <SelectItem key={entity.value} value={entity.value}>
-                          {entity.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <span className="text-muted-foreground">|</span>
-                  <span className="text-muted-foreground">Last updated: 12/15/25 by</span>
-                  <div className="w-5 h-5 rounded-full bg-muted flex items-center justify-center text-xs">JS</div>
-                </div>
+                <h1 className="text-lg font-semibold">
+                  {isEditing ? "Edit Audience" : "Create Audience"}
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                  Define conditions to build your customer segment
+                </p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="icon" className="h-9 w-9">
-                <MoreHorizontal className="w-4 h-4" />
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setShowPreview(!showPreview)}
+                className="gap-2"
+              >
+                <Eye className="w-4 h-4" />
+                {showPreview ? "Hide Preview" : "Show Preview"}
               </Button>
-              <Button className="bg-[hsl(162,72%,40%)] hover:bg-[hsl(162,72%,35%)]" onClick={handleSave}>
-                Add sync
+              <Button onClick={handleSave} className="gap-2">
+                <Save className="w-4 h-4" />
+                Save Audience
               </Button>
             </div>
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="bg-white border-b border-border">
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <div className="px-6">
-              <TabsList className="h-auto p-0 bg-transparent border-0 gap-6">
-                <TabsTrigger 
-                  value="definition" 
-                  className="px-0 py-3 data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-[hsl(162,72%,40%)] rounded-none text-muted-foreground data-[state=active]:text-foreground"
-                >
-                  Definition
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="splits" 
-                  className="px-0 py-3 data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-[hsl(162,72%,40%)] rounded-none text-muted-foreground data-[state=active]:text-foreground"
-                >
-                  Splits
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="syncs" 
-                  className="px-0 py-3 data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-[hsl(162,72%,40%)] rounded-none text-muted-foreground data-[state=active]:text-foreground"
-                >
-                  Syncs
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="traits" 
-                  className="px-0 py-3 data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-[hsl(162,72%,40%)] rounded-none text-muted-foreground data-[state=active]:text-foreground"
-                >
-                  Traits
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="activity" 
-                  className="px-0 py-3 data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-[hsl(162,72%,40%)] rounded-none text-muted-foreground data-[state=active]:text-foreground"
-                >
-                  Activity
-                </TabsTrigger>
-              </TabsList>
+        {/* Main Content */}
+        <div className="flex-1 flex overflow-hidden">
+          {/* Left Panel - Audience Details & Filters */}
+          <div className="flex-1 overflow-auto p-6">
+            <div className="max-w-3xl space-y-6">
+              {/* Audience Info Card */}
+              <Card className="p-5">
+                <h2 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
+                  <Info className="w-4 h-4 text-primary" />
+                  Audience Details
+                </h2>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm font-medium">Audience Name *</Label>
+                      <Input
+                        placeholder="e.g., High-value customers"
+                        value={audienceName}
+                        onChange={(e) => setAudienceName(e.target.value)}
+                        className="mt-1.5"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium">Base Entity</Label>
+                      <Select value={primaryEntity} onValueChange={setPrimaryEntity}>
+                        <SelectTrigger className="mt-1.5">
+                          <Database className="w-4 h-4 mr-2 text-muted-foreground" />
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-popover">
+                          {ENTITIES.map((entity) => (
+                            <SelectItem key={entity.value} value={entity.value}>
+                              {entity.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Description</Label>
+                    <Textarea
+                      placeholder="Describe this audience segment..."
+                      value={audienceDescription}
+                      onChange={(e) => setAudienceDescription(e.target.value)}
+                      className="mt-1.5 resize-none"
+                      rows={2}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium flex items-center gap-2">
+                      <Tag className="w-4 h-4" />
+                      Tags
+                    </Label>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {TAGS.map((tag) => (
+                        <Badge
+                          key={tag}
+                          variant={selectedTags.includes(tag) ? "default" : "outline"}
+                          className="cursor-pointer hover:bg-primary/80 transition-colors"
+                          onClick={() => toggleTag(tag)}
+                        >
+                          {tag}
+                          {selectedTags.includes(tag) && <X className="w-3 h-3 ml-1" />}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between pt-2 border-t border-border">
+                    <div>
+                      <Label className="text-sm font-medium">Status</Label>
+                      <p className="text-xs text-muted-foreground">
+                        Active audiences can be used in campaigns
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">Draft</span>
+                      <Switch checked={isActive} onCheckedChange={setIsActive} />
+                      <span className="text-sm text-muted-foreground">Active</span>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+
+              {/* Filter Builder Card */}
+              <Card className="p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                    <Users className="w-4 h-4 text-primary" />
+                    Audience Conditions
+                  </h2>
+                  {conditionCount > 0 && (
+                    <Badge variant="secondary">{conditionCount} condition{conditionCount !== 1 ? "s" : ""}</Badge>
+                  )}
+                </div>
+                <FilterBuilder
+                  availableFields={availableFields}
+                  filterGroups={filterGroups}
+                  onFilterGroupsChange={setFilterGroups}
+                />
+              </Card>
             </div>
-          </Tabs>
-        </div>
-
-        {/* Action bar */}
-        <div className="bg-white border-b border-border px-6 py-2 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
-              <Undo className="w-4 h-4" />
-            </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
-              <Redo className="w-4 h-4" />
-            </Button>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" className="h-9 gap-2">
-              <ChevronDown className="w-4 h-4" />
-            </Button>
-            <Button variant="outline" className="h-9 gap-2">
-              <Users className="w-4 h-4" />
-              Calculate size
-            </Button>
-            <Button variant="outline" className="h-9 gap-2">
-              <BarChart2 className="w-4 h-4" />
-              Show insights
-            </Button>
-            <Button variant="ghost" size="icon" className="h-9 w-9">
-              <MoreHorizontal className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
 
-        {/* Main content */}
-        <div className="flex-1 p-6 overflow-auto">
-          <div className="max-w-4xl">
-            <FilterBuilder
-              availableFields={availableFields}
-              filterGroups={filterGroups}
-              onFilterGroupsChange={setFilterGroups}
-            />
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="bg-white border-t border-border px-6 py-4 flex items-center justify-between">
-          <Button 
-            variant="outline" 
-            onClick={() => navigate("/people/audience-studio")}
-            className="gap-2"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Go back
-          </Button>
-          <Button 
-            className="bg-[hsl(162,72%,40%)] hover:bg-[hsl(162,72%,35%)] gap-2"
-            onClick={handleSave}
-          >
-            Continue
-            <span className="ml-1">→</span>
-          </Button>
+          {/* Right Panel - Preview */}
+          {showPreview && (
+            <div className="w-96 border-l border-border bg-card overflow-auto animate-slide-in-right">
+              <div className="p-4 border-b border-border">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-sm">Audience Preview</h3>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleRefreshPreview}
+                    className="h-8 gap-2"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${isPreviewLoading ? "animate-spin" : ""}`} />
+                    Refresh
+                  </Button>
+                </div>
+              </div>
+              <PreviewPanel
+                audienceSize={1247}
+                totalSize={156000}
+                sampleData={SAMPLE_DATA}
+                isLoading={isPreviewLoading}
+                onRefresh={handleRefreshPreview}
+              />
+            </div>
+          )}
         </div>
       </main>
     </div>
