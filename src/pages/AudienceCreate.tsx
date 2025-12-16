@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Play, Code, Sparkles, Check, ChevronsUpDown, Search, ArrowUpDown, X, Info, Save, Trash2, AlertTriangle, Database, Shield, Clock, Users, Settings, CheckCircle, XCircle, Zap, Calendar } from "lucide-react";
+import { ArrowLeft, Play, Code, Sparkles, Check, ChevronsUpDown, Search, ArrowUpDown, X, Info, Save, Trash2, AlertTriangle, Database, Shield, Clock, Users, Settings, CheckCircle, XCircle, Zap, Calendar, Link2 } from "lucide-react";
 import DatabaseSchemaViewer, { databaseSchema, getAvailableTables } from "@/components/DatabaseSchemaViewer";
 import {
   Dialog,
@@ -12,6 +12,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -55,23 +56,95 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
+import { RelationshipBuilder, JoinRelationship } from "@/components/audience-studio/RelationshipBuilder";
 
-// Mock schema data
-const mockSchemas = [
-  { name: "public", description: "Default public schema" },
-  { name: "analytics", description: "Analytics and reporting tables" },
-  { name: "archive", description: "Historical data archive" },
-  { name: "staging", description: "Staging environment tables" },
+// Mock table data with columns
+const mockTables = [
+  { name: "users", columns: ["id", "email", "created_at", "status", "first_name", "last_name"] },
+  { name: "orders", columns: ["id", "user_id", "amount", "status", "order_date", "product_id"] },
+  { name: "products", columns: ["id", "name", "price", "category", "sku"] },
+  { name: "subscriptions", columns: ["id", "user_id", "plan_type", "start_date", "status", "monthly_price"] },
+  { name: "customer_metrics", columns: ["user_id", "total_orders", "total_spent", "last_order_date", "customer_segment"] },
+  { name: "events", columns: ["id", "event_type", "timestamp", "user_id", "properties"] },
 ];
 
-// Mock table data
-const mockTables = [
-  { name: "users", schema: "public", columns: ["id", "email", "created_at", "status"] },
-  { name: "orders", schema: "public", columns: ["id", "user_id", "amount", "status"] },
-  { name: "products", schema: "public", columns: ["id", "name", "price", "category"] },
-  { name: "subscriptions", schema: "public", columns: ["id", "user_id", "plan", "start_date"] },
-  { name: "customers", schema: "analytics", columns: ["id", "name", "segment", "ltv"] },
-  { name: "events", schema: "analytics", columns: ["id", "event_type", "timestamp", "user_id"] },
+// Available columns per table (for relationship builder)
+const tableColumns: Record<string, string[]> = mockTables.reduce((acc, table) => {
+  acc[table.name] = table.columns;
+  return acc;
+}, {} as Record<string, string[]>);
+
+// Saved Data Configuration type
+interface SavedDataConfig {
+  id: string;
+  name: string;
+  tables: string[];
+  relationships: JoinRelationship[];
+  description: string;
+}
+
+// Initial saved data configurations
+const INITIAL_SAVED_CONFIGS: SavedDataConfig[] = [
+  {
+    id: "config-1",
+    name: "Customer Orders",
+    tables: ["users", "orders"],
+    relationships: [{
+      id: "rel-1",
+      leftTable: "users",
+      leftColumn: "id",
+      rightTable: "orders",
+      rightColumn: "user_id",
+      joinType: "LEFT",
+    }],
+    description: "Users with their order history",
+  },
+  {
+    id: "config-2",
+    name: "Customer Metrics",
+    tables: ["users", "customer_metrics"],
+    relationships: [{
+      id: "rel-2",
+      leftTable: "users",
+      leftColumn: "id",
+      rightTable: "customer_metrics",
+      rightColumn: "user_id",
+      joinType: "LEFT",
+    }],
+    description: "Users with aggregated metrics",
+  },
+  {
+    id: "config-3",
+    name: "Full Customer 360",
+    tables: ["users", "orders", "customer_metrics", "subscriptions"],
+    relationships: [
+      {
+        id: "rel-3",
+        leftTable: "users",
+        leftColumn: "id",
+        rightTable: "orders",
+        rightColumn: "user_id",
+        joinType: "LEFT",
+      },
+      {
+        id: "rel-4",
+        leftTable: "users",
+        leftColumn: "id",
+        rightTable: "customer_metrics",
+        rightColumn: "user_id",
+        joinType: "LEFT",
+      },
+      {
+        id: "rel-5",
+        leftTable: "users",
+        leftColumn: "id",
+        rightTable: "subscriptions",
+        rightColumn: "user_id",
+        joinType: "LEFT",
+      },
+    ],
+    description: "Complete customer view with orders, metrics, and subscriptions",
+  },
 ];
 
 // Mock database connections
@@ -241,7 +314,13 @@ const AudienceCreate = () => {
   const [selectedDatabase, setSelectedDatabase] = useState("");
   const [audienceName, setAudienceName] = useState("");
   const [selectedTables, setSelectedTables] = useState<string[]>([]);
-  const [selectedSchemas, setSelectedSchemas] = useState<string[]>([]);
+  const [relationships, setRelationships] = useState<JoinRelationship[]>([]);
+  const [savedDataConfigs, setSavedDataConfigs] = useState<SavedDataConfig[]>(INITIAL_SAVED_CONFIGS);
+  const [selectedConfigId, setSelectedConfigId] = useState<string>("");
+  const [isManualMode, setIsManualMode] = useState(false);
+  const [showSaveConfigDialog, setShowSaveConfigDialog] = useState(false);
+  const [newConfigName, setNewConfigName] = useState("");
+  const [newConfigDescription, setNewConfigDescription] = useState("");
   const [naturalLanguageQuery, setNaturalLanguageQuery] = useState("");
   const [sqlQuery, setSqlQuery] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
@@ -249,7 +328,6 @@ const AudienceCreate = () => {
   const [showTokenDialog, setShowTokenDialog] = useState(false);
   const [openDatabaseCombo, setOpenDatabaseCombo] = useState(false);
   const [openTableCombo, setOpenTableCombo] = useState(false);
-  const [openSchemaCombo, setOpenSchemaCombo] = useState(false);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortColumn, setSortColumn] = useState<string>("");
@@ -393,13 +471,14 @@ const AudienceCreate = () => {
             {
               role: "system",
               content: `You are a SQL expert. Convert natural language queries to SQL. The available tables are: ${selectedTables.join(", ")}. 
-Available schemas: ${selectedSchemas.length > 0 ? selectedSchemas.join(", ") : "all"}
+${relationships.length > 0 ? `Configured relationships:\n${relationships.map(r => `${r.leftTable}.${r.leftColumn} ${r.joinType} JOIN ${r.rightTable}.${r.rightColumn}`).join('\n')}` : ''}
 
 IMPORTANT CONSTRAINTS:
 1. Always include a date filter using the time range: ${timeConstraint}
 2. Always add LIMIT ${resultLimit} at the end of the query
 3. Use optimized tables when possible (customer_metrics for aggregations)
 4. Avoid raw log tables
+5. Use the configured relationships for JOINs when available
 
 Only return the SQL query, nothing else.`,
             },
@@ -1168,7 +1247,7 @@ Only return the SQL query, nothing else.`,
                                   className="mr-2"
                                 />
                                 <div>
-                                  <div className="font-medium">{table.schema}.{table.name}</div>
+                                  <div className="font-medium">{table.name}</div>
                                   <div className="text-xs text-muted-foreground">
                                     {table.columns.join(", ")}
                                   </div>
@@ -1182,75 +1261,112 @@ Only return the SQL query, nothing else.`,
                   </Popover>
                 </div>
 
-                <div>
-                  <Label htmlFor="schema-select">Select Schema (Multiple)</Label>
-                  <Popover open={openSchemaCombo} onOpenChange={setOpenSchemaCombo}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={openSchemaCombo}
-                        className="w-full justify-between mt-2 h-auto min-h-[40px]"
-                      >
-                        <div className="flex flex-wrap gap-1 flex-1">
-                          {selectedSchemas.length > 0 ? (
-                            selectedSchemas.map((schemaName) => (
-                              <Badge key={schemaName} variant="secondary" className="gap-1">
-                                {schemaName}
-                                <X 
-                                  className="h-3 w-3 cursor-pointer" 
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedSchemas(selectedSchemas.filter(s => s !== schemaName));
-                                  }}
-                                />
-                              </Badge>
-                            ))
-                          ) : (
-                            <span className="text-muted-foreground">Select schemas...</span>
-                          )}
-                        </div>
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-full p-0 z-50 bg-popover" align="start">
-                      <Command>
-                        <CommandInput placeholder="Search schemas..." />
-                        <CommandList>
-                          <CommandEmpty>No schema found.</CommandEmpty>
-                          <CommandGroup>
-                            {mockSchemas.map((schema) => (
-                              <CommandItem
-                                key={schema.name}
-                                value={schema.name}
-                                onSelect={(currentValue) => {
-                                  setSelectedSchemas(
-                                    selectedSchemas.includes(currentValue)
-                                      ? selectedSchemas.filter(s => s !== currentValue)
-                                      : [...selectedSchemas, currentValue]
-                                  );
-                                }}
-                              >
-                                <Checkbox
-                                  checked={selectedSchemas.includes(schema.name)}
-                                  className="mr-2"
-                                />
-                                <div>
-                                  <div className="font-medium">{schema.name}</div>
-                                  <div className="text-xs text-muted-foreground">
-                                    {schema.description}
-                                  </div>
-                                </div>
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                </div>
+                {/* Define Relationships - show when multiple tables selected */}
+                {selectedTables.length > 1 && (
+                  <div className="mt-4 pt-4 border-t">
+                    <Label className="text-sm font-medium flex items-center gap-2 mb-3">
+                      <Link2 className="h-4 w-4" />
+                      Define Relationships
+                    </Label>
+                    <RelationshipBuilder
+                      primaryTable={selectedTables[0]}
+                      relatedTables={selectedTables.slice(1)}
+                      availableColumns={tableColumns}
+                      relationships={relationships}
+                      onRelationshipsChange={setRelationships}
+                    />
+                  </div>
+                )}
+
+                {/* Save as Audience Type */}
+                {selectedTables.length > 0 && (
+                  <div className="mt-4 pt-4 border-t flex items-center justify-between">
+                    <div className="text-sm text-muted-foreground">
+                      Save this configuration for quick reuse
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowSaveConfigDialog(true)}
+                      className="gap-2"
+                    >
+                      <Save className="h-4 w-4" />
+                      Save as Audience Type
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
+
+            {/* Saved Data Configurations */}
+            {savedDataConfigs.length > 0 && (
+              <div className="bg-card rounded-lg border border-border p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <Database className="h-4 w-4 text-primary" />
+                  <Label className="font-medium">Saved Audience Types</Label>
+                  <span className="text-xs text-muted-foreground ml-2">
+                    Quick access to pre-configured table relationships
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {savedDataConfigs.map((config) => (
+                    <div key={config.id} className="relative group">
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "cursor-pointer transition-all hover:bg-muted px-3 py-2 h-auto pr-8",
+                          selectedConfigId === config.id && "bg-primary text-primary-foreground border-primary"
+                        )}
+                        onClick={() => {
+                          setSelectedConfigId(config.id);
+                          setSelectedTables(config.tables);
+                          setRelationships(config.relationships);
+                          setIsManualMode(false);
+                        }}
+                      >
+                        <div className="flex items-center gap-2">
+                          <Database className="h-3 w-3" />
+                          <span>{config.name}</span>
+                          <span className="text-xs opacity-70">({config.tables.length} tables)</span>
+                        </div>
+                      </Badge>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-0 top-0 h-full w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSavedDataConfigs(savedDataConfigs.filter(c => c.id !== config.id));
+                          if (selectedConfigId === config.id) {
+                            setSelectedConfigId("");
+                          }
+                        }}
+                      >
+                        <Trash2 className="h-3 w-3 text-destructive" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+                {selectedConfigId && (
+                  <div className="mt-4 p-3 bg-muted/50 rounded-lg border">
+                    <div className="text-sm font-medium">
+                      {savedDataConfigs.find(c => c.id === selectedConfigId)?.name}
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {savedDataConfigs.find(c => c.id === selectedConfigId)?.description}
+                    </div>
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {savedDataConfigs.find(c => c.id === selectedConfigId)?.tables.map((table, idx) => (
+                        <Badge key={table} variant="secondary" className="text-xs">
+                          {idx === 0 && <span className="text-primary font-bold mr-1">P</span>}
+                          {table}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             <Tabs defaultValue="ai-sql" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
@@ -1733,6 +1849,72 @@ Only return the SQL query, nothing else.`,
               </div>
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Save Data Configuration Dialog */}
+      <Dialog open={showSaveConfigDialog} onOpenChange={setShowSaveConfigDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Save Data Configuration</DialogTitle>
+            <DialogDescription>
+              Save this table and relationship configuration as a reusable audience type.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Name <span className="text-destructive">*</span></Label>
+              <Input
+                placeholder="e.g., Customer Orders"
+                value={newConfigName}
+                onChange={(e) => setNewConfigName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Description</Label>
+              <Textarea
+                placeholder="Describe this configuration..."
+                value={newConfigDescription}
+                onChange={(e) => setNewConfigDescription(e.target.value)}
+              />
+            </div>
+            <div className="p-3 bg-muted rounded-lg">
+              <Label className="text-xs text-muted-foreground">Configuration Summary:</Label>
+              <div className="mt-2 space-y-1">
+                <div className="text-sm">Tables: {selectedTables.join(", ")}</div>
+                <div className="text-sm">Relationships: {relationships.length} join(s)</div>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowSaveConfigDialog(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={() => {
+                if (!newConfigName.trim()) return;
+                const newConfig: SavedDataConfig = {
+                  id: `config-${Date.now()}`,
+                  name: newConfigName,
+                  tables: selectedTables,
+                  relationships: relationships,
+                  description: newConfigDescription || `Configuration with ${selectedTables.join(", ")}`,
+                };
+                setSavedDataConfigs([...savedDataConfigs, newConfig]);
+                setSelectedConfigId(newConfig.id);
+                setShowSaveConfigDialog(false);
+                setNewConfigName("");
+                setNewConfigDescription("");
+                toast({
+                  title: "Configuration Saved",
+                  description: `"${newConfigName}" has been saved as an audience type.`,
+                });
+              }}
+              disabled={!newConfigName.trim()}
+            >
+              Save Configuration
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
