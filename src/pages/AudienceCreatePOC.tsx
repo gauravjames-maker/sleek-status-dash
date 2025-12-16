@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Sparkles, ChevronDown, ChevronUp, Play, HelpCircle } from "lucide-react";
+import { ArrowLeft, Sparkles, ChevronDown, ChevronUp, Play, HelpCircle, Save, Trash2, Database, Link2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -23,50 +24,110 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
+import { RelationshipBuilder, JoinRelationship } from "@/components/audience-studio/RelationshipBuilder";
 
 // Mocked data
 const MOCK_TABLES = ["customers", "orders", "events", "products", "sessions"];
-const MOCK_SCHEMAS = ["public", "marketing", "sales", "analytics"];
 
-// Audience Studio audiences
-const AUDIENCE_STUDIO_AUDIENCES = [
-  {
-    id: "aud-001",
-    name: "High-value customers",
-    description: "Customers with total order value > $500 in the last 90 days",
-    summary: "customers whose total order_amount > $500 in the past 90 days",
-  },
-  {
-    id: "aud-002",
-    name: "Inactive users (30 days)",
-    description: "Users who haven't logged in for 30+ days",
-    summary: "users with no login events in the last 30 days",
-  },
-  {
-    id: "aud-004",
-    name: "Frequent buyers",
-    description: "Customers with 5+ orders in the last 60 days",
-    summary: "customers with COUNT(orders) >= 5 in last 60 days",
-  },
-];
+// Available columns per table
+const MOCK_COLUMNS: Record<string, string[]> = {
+  customers: ["customer_id", "email", "name", "status", "created_at", "last_login", "segment"],
+  orders: ["order_id", "customer_id", "total_amount", "order_date", "status", "product_id"],
+  events: ["event_id", "customer_id", "event_type", "event_date", "properties"],
+  products: ["product_id", "name", "category", "price", "sku"],
+  sessions: ["session_id", "customer_id", "start_time", "end_time", "page_views"],
+};
 
-const MOCK_AMBIGUITY_OPTIONS = [
+// Saved Data Configurations (Audience Types)
+interface SavedDataConfig {
+  id: string;
+  name: string;
+  tables: string[];
+  relationships: JoinRelationship[];
+  description: string;
+}
+
+const INITIAL_SAVED_CONFIGS: SavedDataConfig[] = [
   {
-    id: "status_active",
-    title: "Active = status = 'active'",
-    description: "Users whose status column equals 'active'.",
+    id: "config-1",
+    name: "Customer Orders",
+    tables: ["customers", "orders"],
+    relationships: [{
+      id: "rel-1",
+      leftTable: "customers",
+      leftColumn: "customer_id",
+      rightTable: "orders",
+      rightColumn: "customer_id",
+      joinType: "LEFT",
+    }],
+    description: "Customers with their order history",
   },
   {
-    id: "last_login_30d",
-    title: "Active = last_login in last 30 days",
-    description: "Users who logged in at least once in the last 30 days.",
+    id: "config-2",
+    name: "Customer Events & Sessions",
+    tables: ["customers", "events", "sessions"],
+    relationships: [
+      {
+        id: "rel-2",
+        leftTable: "customers",
+        leftColumn: "customer_id",
+        rightTable: "events",
+        rightColumn: "customer_id",
+        joinType: "LEFT",
+      },
+      {
+        id: "rel-3",
+        leftTable: "customers",
+        leftColumn: "customer_id",
+        rightTable: "sessions",
+        rightColumn: "customer_id",
+        joinType: "LEFT",
+      },
+    ],
+    description: "Customers with events and session data",
   },
   {
-    id: "lifecycle_engaged",
-    title: "Active = lifecycle_stage = 'engaged'",
-    description: "Users in the 'engaged' lifecycle stage.",
+    id: "config-3",
+    name: "Full Customer 360",
+    tables: ["customers", "orders", "events", "products"],
+    relationships: [
+      {
+        id: "rel-4",
+        leftTable: "customers",
+        leftColumn: "customer_id",
+        rightTable: "orders",
+        rightColumn: "customer_id",
+        joinType: "LEFT",
+      },
+      {
+        id: "rel-5",
+        leftTable: "customers",
+        leftColumn: "customer_id",
+        rightTable: "events",
+        rightColumn: "customer_id",
+        joinType: "LEFT",
+      },
+      {
+        id: "rel-6",
+        leftTable: "orders",
+        leftColumn: "product_id",
+        rightTable: "products",
+        rightColumn: "product_id",
+        joinType: "LEFT",
+      },
+    ],
+    description: "Complete customer view with orders, events, and products",
   },
 ];
 
@@ -103,6 +164,24 @@ const SAVED_PREFERENCES = [
   },
 ];
 
+const MOCK_AMBIGUITY_OPTIONS = [
+  {
+    id: "status_active",
+    title: "Active = status = 'active'",
+    description: "Users whose status column equals 'active'.",
+  },
+  {
+    id: "last_login_30d",
+    title: "Active = last_login in last 30 days",
+    description: "Users who logged in at least once in the last 30 days.",
+  },
+  {
+    id: "lifecycle_engaged",
+    title: "Active = lifecycle_stage = 'engaged'",
+    description: "Users in the 'engaged' lifecycle stage.",
+  },
+];
+
 const MOCK_SQL = `SELECT 
   c.customer_id,
   c.email,
@@ -133,11 +212,21 @@ type FlowState = "input" | "ambiguity" | "result";
 export default function AudienceCreatePOC() {
   const navigate = useNavigate();
   
-  // Form state
+  // Saved configs state
+  const [savedConfigs, setSavedConfigs] = useState<SavedDataConfig[]>(INITIAL_SAVED_CONFIGS);
+  const [selectedConfigId, setSelectedConfigId] = useState<string>("");
+  
+  // Manual configuration state
   const [selectedTables, setSelectedTables] = useState<string[]>([]);
-  const [selectedSchema, setSelectedSchema] = useState<string>("");
-  const [selectedAudience, setSelectedAudience] = useState<string>("");
-  const [useRawTables, setUseRawTables] = useState(false);
+  const [relationships, setRelationships] = useState<JoinRelationship[]>([]);
+  const [isManualMode, setIsManualMode] = useState(false);
+  
+  // Save dialog state
+  const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
+  const [newConfigName, setNewConfigName] = useState("");
+  const [newConfigDescription, setNewConfigDescription] = useState("");
+  
+  // Query state
   const [naturalLanguageQuery, setNaturalLanguageQuery] = useState("");
   
   // Flow state
@@ -147,8 +236,15 @@ export default function AudienceCreatePOC() {
   const [sqlCode, setSqlCode] = useState(MOCK_SQL);
   const [previewHighlight, setPreviewHighlight] = useState(false);
 
+  const selectedConfig = savedConfigs.find(c => c.id === selectedConfigId);
+  
+  // Get the effective tables and relationships (from saved config or manual)
+  const effectiveTables = selectedConfigId ? (selectedConfig?.tables || []) : selectedTables;
+  const effectiveRelationships = selectedConfigId ? (selectedConfig?.relationships || []) : relationships;
+  const primaryTable = effectiveTables[0] || "";
+  const relatedTables = effectiveTables.slice(1);
+
   const handleGenerateSQL = () => {
-    // Always show ambiguity panel for POC
     setFlowState("ambiguity");
   };
 
@@ -168,24 +264,72 @@ export default function AudienceCreatePOC() {
   };
 
   const handleTableToggle = (table: string) => {
-    setSelectedTables(prev => 
-      prev.includes(table) 
+    setSelectedTables(prev => {
+      const newTables = prev.includes(table) 
         ? prev.filter(t => t !== table)
-        : [...prev, table]
-    );
+        : [...prev, table];
+      
+      // Remove relationships for tables no longer selected
+      if (prev.includes(table)) {
+        setRelationships(rels => rels.filter(r => r.rightTable !== table && r.leftTable !== table));
+      }
+      
+      return newTables;
+    });
+  };
+
+  const handleSelectConfig = (configId: string) => {
+    setSelectedConfigId(configId);
+    setIsManualMode(false);
+    // Clear manual selections
+    setSelectedTables([]);
+    setRelationships([]);
+  };
+
+  const handleSwitchToManual = () => {
+    setIsManualMode(true);
+    setSelectedConfigId("");
+  };
+
+  const handleSaveConfig = () => {
+    if (!newConfigName.trim() || selectedTables.length === 0) return;
+    
+    const newConfig: SavedDataConfig = {
+      id: `config-${Date.now()}`,
+      name: newConfigName,
+      tables: selectedTables,
+      relationships: relationships,
+      description: newConfigDescription || `Custom configuration with ${selectedTables.join(", ")}`,
+    };
+    
+    setSavedConfigs(prev => [...prev, newConfig]);
+    setSelectedConfigId(newConfig.id);
+    setIsManualMode(false);
+    setIsSaveDialogOpen(false);
+    setNewConfigName("");
+    setNewConfigDescription("");
+  };
+
+  const handleDeleteConfig = (configId: string) => {
+    setSavedConfigs(prev => prev.filter(c => c.id !== configId));
+    if (selectedConfigId === configId) {
+      setSelectedConfigId("");
+    }
   };
 
   const getExplanationBullets = () => {
     const selected = MOCK_AMBIGUITY_OPTIONS.find(o => o.id === selectedAmbiguity);
     return [
       `You asked: "${naturalLanguageQuery || 'show me active customers from the last 30 days'}"`,
-      `Selected tables: ${selectedTables.length > 0 ? selectedTables.join(", ") : "customers, orders"}`,
+      `Selected tables: ${effectiveTables.join(", ")}`,
+      `Relationships: ${effectiveRelationships.length} join(s) configured`,
       `You chose: ${selected?.title || "Active = last_login in last 30 days"}`,
-      "MG-AI joined customers with orders on customers.customer_id = orders.customer_id.",
+      "MG-AI used the configured joins to connect tables.",
       "Applied filter: last_login >= 30 days ago.",
-      "Added aggregation: total_spend > $100.",
     ];
   };
+
+  const canGenerateSQL = effectiveTables.length > 0 && naturalLanguageQuery.trim().length > 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -222,91 +366,192 @@ export default function AudienceCreatePOC() {
           </TabsList>
 
           <TabsContent value="ai-sql" className="space-y-6">
-            {/* 0. Base Audience from Audience Studio */}
-            <Card className="border-primary/30 bg-primary/5">
+            {/* 1. Data Configuration Selection */}
+            <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base font-medium flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-primary" />
-                  Base Audience (from Audience Studio)
+                  <Database className="h-4 w-4 text-primary" />
+                  Data Configuration
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                {/* Saved Configurations */}
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium">Select a pre-defined audience</Label>
-                  <Select value={selectedAudience} onValueChange={(v) => { setSelectedAudience(v); setUseRawTables(false); }}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Choose an audience from Audience Studio..." />
-                    </SelectTrigger>
-                    <SelectContent className="bg-popover z-50">
-                      {AUDIENCE_STUDIO_AUDIENCES.map((aud) => (
-                        <SelectItem key={aud.id} value={aud.id}>
-                          <div className="flex flex-col">
-                            <span>{aud.name}</span>
-                            <span className="text-xs text-muted-foreground">{aud.description}</span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {selectedAudience && (
-                  <div className="p-3 bg-background rounded-lg border">
-                    <div className="text-sm font-medium">{AUDIENCE_STUDIO_AUDIENCES.find(a => a.id === selectedAudience)?.name}</div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      {AUDIENCE_STUDIO_AUDIENCES.find(a => a.id === selectedAudience)?.summary}
-                    </div>
+                  <Label className="text-xs text-muted-foreground uppercase tracking-wide">
+                    Saved Audience Types
+                  </Label>
+                  <div className="flex flex-wrap gap-2">
+                    {savedConfigs.map((config) => (
+                      <Badge
+                        key={config.id}
+                        variant="outline"
+                        className={cn(
+                          "cursor-pointer transition-all hover:bg-muted px-3 py-2 h-auto",
+                          selectedConfigId === config.id && "bg-primary text-primary-foreground border-primary"
+                        )}
+                        onClick={() => handleSelectConfig(config.id)}
+                      >
+                        <div className="flex items-center gap-2">
+                          <Database className="h-3 w-3" />
+                          <span>{config.name}</span>
+                          <span className="text-xs opacity-70">({config.tables.length} tables)</span>
+                        </div>
+                      </Badge>
+                    ))}
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        "cursor-pointer transition-all hover:bg-muted px-3 py-2 h-auto border-dashed",
+                        isManualMode && "bg-primary text-primary-foreground border-primary"
+                      )}
+                      onClick={handleSwitchToManual}
+                    >
+                      + Create New
+                    </Badge>
                   </div>
-                )}
-
-                <div className="flex items-center gap-2">
-                  <Button variant="link" size="sm" className="h-auto p-0 text-xs" onClick={() => { setUseRawTables(true); setSelectedAudience(""); }}>
-                    Or use raw tables (advanced)
-                  </Button>
                 </div>
-              </CardContent>
-            </Card>
 
-            {/* 1. Data Selection Row - only show if using raw tables */}
-            {useRawTables && (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base font-medium">Data Selection (Raw Tables)</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">Tables <span className="text-destructive">*</span></Label>
-                    <div className="flex flex-wrap gap-2 p-3 border rounded-md min-h-[42px] bg-background">
-                      {MOCK_TABLES.map((table) => (
-                        <Badge
-                          key={table}
-                          variant={selectedTables.includes(table) ? "default" : "outline"}
-                          className={cn("cursor-pointer transition-colors", selectedTables.includes(table) ? "bg-primary text-primary-foreground" : "hover:bg-muted")}
-                          onClick={() => handleTableToggle(table)}
-                        >
+                {/* Selected Config Summary */}
+                {selectedConfig && !isManualMode && (
+                  <div className="p-4 bg-muted/50 rounded-lg border space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="font-medium">{selectedConfig.name}</div>
+                        <div className="text-sm text-muted-foreground">{selectedConfig.description}</div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                        onClick={() => handleDeleteConfig(selectedConfig.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedConfig.tables.map((table, idx) => (
+                        <Badge key={table} variant="secondary" className="gap-1">
+                          {idx === 0 && <span className="text-primary font-bold">P</span>}
                           {table}
                         </Badge>
                       ))}
                     </div>
+                    {selectedConfig.relationships.length > 0 && (
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">Relationships:</Label>
+                        {selectedConfig.relationships.map((rel) => (
+                          <div key={rel.id} className="text-xs font-mono text-muted-foreground bg-background p-2 rounded">
+                            {rel.leftTable}.{rel.leftColumn} {rel.joinType} JOIN {rel.rightTable}.{rel.rightColumn}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">Schema <span className="text-muted-foreground text-xs">(optional)</span></Label>
-                    <Select value={selectedSchema} onValueChange={setSelectedSchema}>
-                      <SelectTrigger className="w-full"><SelectValue placeholder="Select schema..." /></SelectTrigger>
-                      <SelectContent className="bg-popover z-50">
-                        {MOCK_SCHEMAS.map((schema) => (<SelectItem key={schema} value={schema}>{schema}</SelectItem>))}
-                      </SelectContent>
-                    </Select>
+                )}
+
+                {/* Manual Configuration Mode */}
+                {isManualMode && (
+                  <div className="space-y-4 p-4 bg-muted/30 rounded-lg border border-dashed">
+                    {/* Table Selection */}
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Select Tables <span className="text-destructive">*</span></Label>
+                      <p className="text-xs text-muted-foreground">First selected table will be the primary entity</p>
+                      <div className="flex flex-wrap gap-2 p-3 border rounded-md min-h-[42px] bg-background">
+                        {MOCK_TABLES.map((table) => (
+                          <Badge
+                            key={table}
+                            variant={selectedTables.includes(table) ? "default" : "outline"}
+                            className={cn(
+                              "cursor-pointer transition-colors gap-1",
+                              selectedTables.includes(table) ? "bg-primary text-primary-foreground" : "hover:bg-muted"
+                            )}
+                            onClick={() => handleTableToggle(table)}
+                          >
+                            {selectedTables[0] === table && <span className="font-bold">P</span>}
+                            {table}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Relationship Builder */}
+                    {selectedTables.length > 1 && (
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium flex items-center gap-2">
+                          <Link2 className="h-4 w-4" />
+                          Define Relationships
+                        </Label>
+                        <RelationshipBuilder
+                          primaryTable={selectedTables[0]}
+                          relatedTables={selectedTables.slice(1)}
+                          availableColumns={MOCK_COLUMNS}
+                          relationships={relationships}
+                          onRelationshipsChange={setRelationships}
+                        />
+                      </div>
+                    )}
+
+                    {/* Save Configuration */}
+                    {selectedTables.length > 0 && (
+                      <Dialog open={isSaveDialogOpen} onOpenChange={setIsSaveDialogOpen}>
+                        <DialogTrigger asChild>
+                          <Button variant="outline" className="gap-2">
+                            <Save className="h-4 w-4" />
+                            Save as Audience Type
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Save Data Configuration</DialogTitle>
+                            <DialogDescription>
+                              Save this table and relationship configuration as a reusable audience type.
+                            </DialogDescription>
+                          </DialogHeader>
+                          <div className="space-y-4 py-4">
+                            <div className="space-y-2">
+                              <Label>Name <span className="text-destructive">*</span></Label>
+                              <Input
+                                placeholder="e.g., Customer Orders"
+                                value={newConfigName}
+                                onChange={(e) => setNewConfigName(e.target.value)}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Description</Label>
+                              <Textarea
+                                placeholder="Describe this configuration..."
+                                value={newConfigDescription}
+                                onChange={(e) => setNewConfigDescription(e.target.value)}
+                              />
+                            </div>
+                            <div className="p-3 bg-muted rounded-lg">
+                              <Label className="text-xs text-muted-foreground">Configuration Summary:</Label>
+                              <div className="mt-2 space-y-1">
+                                <div className="text-sm">Tables: {selectedTables.join(", ")}</div>
+                                <div className="text-sm">Relationships: {relationships.length} join(s)</div>
+                              </div>
+                            </div>
+                          </div>
+                          <DialogFooter>
+                            <Button variant="outline" onClick={() => setIsSaveDialogOpen(false)}>
+                              Cancel
+                            </Button>
+                            <Button onClick={handleSaveConfig} disabled={!newConfigName.trim()}>
+                              Save Configuration
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                    )}
                   </div>
-                </div>
+                )}
+
                 <p className="text-xs text-muted-foreground flex items-start gap-1.5">
                   <HelpCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-                  Select the table(s) and optional schema.
+                  Select a saved audience type or create a new configuration with tables and relationships.
                 </p>
               </CardContent>
             </Card>
-            )}
 
             {/* 2. Natural Language Input */}
             <Card>
@@ -354,7 +599,7 @@ export default function AudienceCreatePOC() {
                 <div className="flex justify-end">
                   <Button 
                     onClick={handleGenerateSQL}
-                    disabled={selectedTables.length === 0}
+                    disabled={!canGenerateSQL}
                     className="gap-2"
                   >
                     <Sparkles className="h-4 w-4" />
