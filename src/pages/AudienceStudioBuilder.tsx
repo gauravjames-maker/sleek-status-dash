@@ -245,7 +245,7 @@ const AudienceStudioBuilder = () => {
         <div className="flex-1 flex overflow-hidden">
           {/* Left: Schema Explorer (visible on filter step) */}
           {currentStep === 2 && (
-            <div className="w-64 border-r border-border bg-card">
+            <div className="w-64 border-r border-border bg-card flex-shrink-0">
               <SchemaExplorer
                 tables={allSelectedTables.map((t) => ({
                   name: t,
@@ -257,268 +257,276 @@ const AudienceStudioBuilder = () => {
           )}
 
           {/* Center: Main content */}
-          <div className="flex-1 overflow-auto p-6">
-            {/* Step 1: Data Sources */}
-            {currentStep === 0 && (
-              <div className="max-w-2xl space-y-6">
-                <div>
-                  <h2 className="text-lg font-semibold mb-4">
-                    Select Data Sources
-                  </h2>
-                  <p className="text-muted-foreground mb-6">
-                    Choose the primary entity and any related tables for your
-                    audience
-                  </p>
-                </div>
-
-                <div className="space-y-4">
+          <div className="flex-1 overflow-auto p-8">
+            <div className={`mx-auto ${currentStep === 2 ? "" : "max-w-2xl"}`}>
+              {/* Step 1: Data Sources */}
+              {currentStep === 0 && (
+                <div className="space-y-6">
                   <div>
-                    <Label className="text-sm font-medium">Primary Entity</Label>
-                    <p className="text-xs text-muted-foreground mb-2">
-                      The main entity your audience is based on
+                    <h2 className="text-lg font-semibold mb-2">
+                      Select Data Sources
+                    </h2>
+                    <p className="text-muted-foreground">
+                      Choose the primary entity and any related tables for your
+                      audience
                     </p>
-                    <Select
-                      value={primaryEntity}
-                      onValueChange={setPrimaryEntity}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select primary entity" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-popover">
-                        {ENTITIES.map((entity) => (
-                          <SelectItem key={entity.value} value={entity.value}>
-                            {entity.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
                   </div>
 
-                  <div>
-                    <Label className="text-sm font-medium">
-                      Related Tables (Optional)
-                    </Label>
-                    <p className="text-xs text-muted-foreground mb-2">
-                      Add related tables to enrich your audience filters
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {RELATED_TABLES.map((table) => (
-                        <Badge
-                          key={table.value}
-                          variant={
-                            relatedTables.includes(table.value)
-                              ? "default"
-                              : "outline"
-                          }
-                          className="cursor-pointer hover:bg-primary/80"
-                          onClick={() =>
-                            setRelatedTables((prev) =>
-                              prev.includes(table.value)
-                                ? prev.filter((t) => t !== table.value)
-                                : [...prev, table.value]
-                            )
-                          }
-                        >
-                          {table.label}
-                          {relatedTables.includes(table.value) && (
-                            <X className="w-3 h-3 ml-1" />
-                          )}
-                        </Badge>
-                      ))}
+                  <div className="space-y-6">
+                    <div>
+                      <Label className="text-sm font-medium">Primary Entity</Label>
+                      <p className="text-xs text-muted-foreground mb-2">
+                        The main entity your audience is based on
+                      </p>
+                      <Select
+                        value={primaryEntity}
+                        onValueChange={setPrimaryEntity}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select primary entity" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-popover">
+                          {ENTITIES.map((entity) => (
+                            <SelectItem key={entity.value} value={entity.value}>
+                              {entity.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <Label className="text-sm font-medium">
+                        Related Tables (Optional)
+                      </Label>
+                      <p className="text-xs text-muted-foreground mb-2">
+                        Add related tables to enrich your audience filters
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {RELATED_TABLES.map((table) => (
+                          <Badge
+                            key={table.value}
+                            variant={
+                              relatedTables.includes(table.value)
+                                ? "default"
+                                : "outline"
+                            }
+                            className="cursor-pointer hover:bg-primary/80"
+                            onClick={() =>
+                              setRelatedTables((prev) =>
+                                prev.includes(table.value)
+                                  ? prev.filter((t) => t !== table.value)
+                                  : [...prev, table.value]
+                              )
+                            }
+                          >
+                            {table.label}
+                            {relatedTables.includes(table.value) && (
+                              <X className="w-3 h-3 ml-1" />
+                            )}
+                          </Badge>
+                        ))}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Schema Preview */}
-                <Card className="p-4">
-                  <h3 className="text-sm font-medium mb-3">Selected Schema</h3>
-                  <div className="space-y-3">
-                    {allSelectedTables.map((table) => (
-                      <div key={table} className="text-sm">
-                        <div className="font-medium text-primary">{table}</div>
-                        <div className="text-xs text-muted-foreground mt-1">
-                          {SCHEMA[table]?.map((c) => c.name).join(", ")}
+                  {/* Schema Preview */}
+                  <Card className="p-4">
+                    <h3 className="text-sm font-medium mb-3">Selected Schema</h3>
+                    <div className="space-y-3">
+                      {allSelectedTables.map((table) => (
+                        <div key={table} className="text-sm">
+                          <div className="font-medium text-primary">{table}</div>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {SCHEMA[table]?.map((c) => c.name).join(", ")}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </Card>
+                </div>
+              )}
+
+              {/* Step 2: Relationships */}
+              {currentStep === 1 && (
+                <div className="space-y-6">
+                  <div>
+                    <h2 className="text-lg font-semibold mb-2">
+                      Define Relationships
+                    </h2>
+                    <p className="text-muted-foreground">
+                      Configure how tables connect to each other
+                    </p>
+                  </div>
+                  <RelationshipBuilder
+                    primaryTable={primaryEntity}
+                    relatedTables={relatedTables}
+                    availableColumns={availableColumns}
+                    relationships={relationships}
+                    onRelationshipsChange={setRelationships}
+                  />
+                </div>
+              )}
+
+              {/* Step 3: Filters */}
+              {currentStep === 2 && (
+                <div className="space-y-6">
+                  <div>
+                    <h2 className="text-lg font-semibold mb-2">Build Filters</h2>
+                    <p className="text-muted-foreground">
+                      Define conditions to segment your audience
+                    </p>
+                  </div>
+                  <FilterBuilder
+                    availableFields={availableFields}
+                    filterGroups={filterGroups}
+                    onFilterGroupsChange={setFilterGroups}
+                  />
+                </div>
+              )}
+
+              {/* Step 4: Preview */}
+              {currentStep === 3 && (
+                <div className="space-y-6">
+                  <div>
+                    <h2 className="text-lg font-semibold mb-2">Preview Results</h2>
+                    <p className="text-muted-foreground">
+                      Review your audience before saving
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <Card className="p-6">
+                      <h3 className="font-medium mb-4">Audience Summary</h3>
+                      <div className="space-y-3 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">
+                            Primary Entity:
+                          </span>
+                          <span className="font-medium">{primaryEntity}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">
+                            Related Tables:
+                          </span>
+                          <span className="font-medium">
+                            {relatedTables.length || "None"}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">
+                            Filter Groups:
+                          </span>
+                          <span className="font-medium">
+                            {filterGroups.length || "None"}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">
+                            Total Conditions:
+                          </span>
+                          <span className="font-medium">
+                            {filterGroups.reduce(
+                              (sum, g) => sum + g.conditions.length,
+                              0
+                            )}
+                          </span>
                         </div>
                       </div>
-                    ))}
+                    </Card>
+                    <Card className="overflow-hidden">
+                      <PreviewPanel
+                        audienceSize={1247}
+                        totalSize={156000}
+                        sampleData={SAMPLE_DATA}
+                        isLoading={isPreviewLoading}
+                        onRefresh={handleRefreshPreview}
+                      />
+                    </Card>
                   </div>
-                </Card>
-              </div>
-            )}
-
-            {/* Step 2: Relationships */}
-            {currentStep === 1 && (
-              <div className="max-w-2xl">
-                <h2 className="text-lg font-semibold mb-4">
-                  Define Relationships
-                </h2>
-                <p className="text-muted-foreground mb-6">
-                  Configure how tables connect to each other
-                </p>
-                <RelationshipBuilder
-                  primaryTable={primaryEntity}
-                  relatedTables={relatedTables}
-                  availableColumns={availableColumns}
-                  relationships={relationships}
-                  onRelationshipsChange={setRelationships}
-                />
-              </div>
-            )}
-
-            {/* Step 3: Filters */}
-            {currentStep === 2 && (
-              <div>
-                <h2 className="text-lg font-semibold mb-4">Build Filters</h2>
-                <p className="text-muted-foreground mb-6">
-                  Define conditions to segment your audience
-                </p>
-                <FilterBuilder
-                  availableFields={availableFields}
-                  filterGroups={filterGroups}
-                  onFilterGroupsChange={setFilterGroups}
-                />
-              </div>
-            )}
-
-            {/* Step 4: Preview */}
-            {currentStep === 3 && (
-              <div className="max-w-4xl">
-                <h2 className="text-lg font-semibold mb-4">Preview Results</h2>
-                <p className="text-muted-foreground mb-6">
-                  Review your audience before saving
-                </p>
-                <div className="grid grid-cols-2 gap-6">
-                  <Card className="p-6">
-                    <h3 className="font-medium mb-4">Audience Summary</h3>
-                    <div className="space-y-3 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">
-                          Primary Entity:
-                        </span>
-                        <span className="font-medium">{primaryEntity}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">
-                          Related Tables:
-                        </span>
-                        <span className="font-medium">
-                          {relatedTables.length || "None"}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">
-                          Filter Groups:
-                        </span>
-                        <span className="font-medium">
-                          {filterGroups.length || "None"}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">
-                          Total Conditions:
-                        </span>
-                        <span className="font-medium">
-                          {filterGroups.reduce(
-                            (sum, g) => sum + g.conditions.length,
-                            0
-                          )}
-                        </span>
-                      </div>
-                    </div>
-                  </Card>
-                  <Card className="overflow-hidden">
-                    <PreviewPanel
-                      audienceSize={1247}
-                      totalSize={156000}
-                      sampleData={SAMPLE_DATA}
-                      isLoading={isPreviewLoading}
-                      onRefresh={handleRefreshPreview}
-                    />
-                  </Card>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Step 5: Metadata */}
-            {currentStep === 4 && (
-              <div className="max-w-2xl space-y-6">
-                <div>
-                  <h2 className="text-lg font-semibold mb-4">Save Audience</h2>
-                  <p className="text-muted-foreground mb-6">
-                    Add metadata and save your audience
-                  </p>
-                </div>
-
-                <div className="space-y-4">
+              {/* Step 5: Metadata */}
+              {currentStep === 4 && (
+                <div className="space-y-6">
                   <div>
-                    <Label className="text-sm font-medium">
-                      Audience Name *
-                    </Label>
-                    <Input
-                      value={audienceName}
-                      onChange={(e) => setAudienceName(e.target.value)}
-                      placeholder="e.g., High-value customers"
-                      className="mt-1"
-                    />
-                  </div>
-
-                  <div>
-                    <Label className="text-sm font-medium">Description</Label>
-                    <Textarea
-                      value={audienceDescription}
-                      onChange={(e) => setAudienceDescription(e.target.value)}
-                      placeholder="Describe this audience segment..."
-                      className="mt-1"
-                      rows={3}
-                    />
-                  </div>
-
-                  <div>
-                    <Label className="text-sm font-medium">Tags</Label>
-                    <p className="text-xs text-muted-foreground mb-2">
-                      Add tags to organize your audiences
+                    <h2 className="text-lg font-semibold mb-2">Save Audience</h2>
+                    <p className="text-muted-foreground">
+                      Add metadata and save your audience
                     </p>
-                    <div className="flex flex-wrap gap-2">
-                      {TAGS.map((tag) => (
-                        <Badge
-                          key={tag}
-                          variant={
-                            selectedTags.includes(tag) ? "default" : "outline"
-                          }
-                          className="cursor-pointer"
-                          onClick={() => toggleTag(tag)}
-                        >
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
                   </div>
 
-                  <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+                  <div className="space-y-4">
                     <div>
-                      <Label className="text-sm font-medium">Status</Label>
-                      <p className="text-xs text-muted-foreground">
-                        Active audiences can be used in the AI SQL Builder
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-muted-foreground">
-                        {isActive ? "Active" : "Draft"}
-                      </span>
-                      <Switch
-                        checked={isActive}
-                        onCheckedChange={setIsActive}
+                      <Label className="text-sm font-medium">
+                        Audience Name *
+                      </Label>
+                      <Input
+                        value={audienceName}
+                        onChange={(e) => setAudienceName(e.target.value)}
+                        placeholder="e.g., High-value customers"
+                        className="mt-1"
                       />
                     </div>
+
+                    <div>
+                      <Label className="text-sm font-medium">Description</Label>
+                      <Textarea
+                        value={audienceDescription}
+                        onChange={(e) => setAudienceDescription(e.target.value)}
+                        placeholder="Describe this audience segment..."
+                        className="mt-1"
+                        rows={3}
+                      />
+                    </div>
+
+                    <div>
+                      <Label className="text-sm font-medium">Tags</Label>
+                      <p className="text-xs text-muted-foreground mb-2">
+                        Add tags to organize your audiences
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {TAGS.map((tag) => (
+                          <Badge
+                            key={tag}
+                            variant={
+                              selectedTags.includes(tag) ? "default" : "outline"
+                            }
+                            className="cursor-pointer"
+                            onClick={() => toggleTag(tag)}
+                          >
+                            {tag}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+                      <div>
+                        <Label className="text-sm font-medium">Status</Label>
+                        <p className="text-xs text-muted-foreground">
+                          Active audiences can be used in the AI SQL Builder
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">
+                          {isActive ? "Active" : "Draft"}
+                        </span>
+                        <Switch
+                          checked={isActive}
+                          onCheckedChange={setIsActive}
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
           {/* Right: Preview Panel (visible on filter step) */}
           {currentStep === 2 && (
-            <div className="w-80 border-l border-border bg-card">
+            <div className="w-80 border-l border-border bg-card flex-shrink-0">
               <PreviewPanel
                 audienceSize={1247}
                 totalSize={156000}
