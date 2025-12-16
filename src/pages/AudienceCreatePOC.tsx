@@ -30,6 +30,28 @@ import { cn } from "@/lib/utils";
 const MOCK_TABLES = ["customers", "orders", "events", "products", "sessions"];
 const MOCK_SCHEMAS = ["public", "marketing", "sales", "analytics"];
 
+// Audience Studio audiences
+const AUDIENCE_STUDIO_AUDIENCES = [
+  {
+    id: "aud-001",
+    name: "High-value customers",
+    description: "Customers with total order value > $500 in the last 90 days",
+    summary: "customers whose total order_amount > $500 in the past 90 days",
+  },
+  {
+    id: "aud-002",
+    name: "Inactive users (30 days)",
+    description: "Users who haven't logged in for 30+ days",
+    summary: "users with no login events in the last 30 days",
+  },
+  {
+    id: "aud-004",
+    name: "Frequent buyers",
+    description: "Customers with 5+ orders in the last 60 days",
+    summary: "customers with COUNT(orders) >= 5 in last 60 days",
+  },
+];
+
 const MOCK_AMBIGUITY_OPTIONS = [
   {
     id: "status_active",
@@ -114,6 +136,8 @@ export default function AudienceCreatePOC() {
   // Form state
   const [selectedTables, setSelectedTables] = useState<string[]>([]);
   const [selectedSchema, setSelectedSchema] = useState<string>("");
+  const [selectedAudience, setSelectedAudience] = useState<string>("");
+  const [useRawTables, setUseRawTables] = useState(false);
   const [naturalLanguageQuery, setNaturalLanguageQuery] = useState("");
   
   // Flow state
@@ -198,29 +222,67 @@ export default function AudienceCreatePOC() {
           </TabsList>
 
           <TabsContent value="ai-sql" className="space-y-6">
-            {/* 1. Data Selection Row */}
+            {/* 0. Base Audience from Audience Studio */}
+            <Card className="border-primary/30 bg-primary/5">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base font-medium flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  Base Audience (from Audience Studio)
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Select a pre-defined audience</Label>
+                  <Select value={selectedAudience} onValueChange={(v) => { setSelectedAudience(v); setUseRawTables(false); }}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Choose an audience from Audience Studio..." />
+                    </SelectTrigger>
+                    <SelectContent className="bg-popover z-50">
+                      {AUDIENCE_STUDIO_AUDIENCES.map((aud) => (
+                        <SelectItem key={aud.id} value={aud.id}>
+                          <div className="flex flex-col">
+                            <span>{aud.name}</span>
+                            <span className="text-xs text-muted-foreground">{aud.description}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {selectedAudience && (
+                  <div className="p-3 bg-background rounded-lg border">
+                    <div className="text-sm font-medium">{AUDIENCE_STUDIO_AUDIENCES.find(a => a.id === selectedAudience)?.name}</div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {AUDIENCE_STUDIO_AUDIENCES.find(a => a.id === selectedAudience)?.summary}
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2">
+                  <Button variant="link" size="sm" className="h-auto p-0 text-xs" onClick={() => { setUseRawTables(true); setSelectedAudience(""); }}>
+                    Or use raw tables (advanced)
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* 1. Data Selection Row - only show if using raw tables */}
+            {useRawTables && (
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-base font-medium">Data Selection</CardTitle>
+                <CardTitle className="text-base font-medium">Data Selection (Raw Tables)</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Tables Multi-select */}
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium">
-                      Tables <span className="text-destructive">*</span>
-                    </Label>
+                    <Label className="text-sm font-medium">Tables <span className="text-destructive">*</span></Label>
                     <div className="flex flex-wrap gap-2 p-3 border rounded-md min-h-[42px] bg-background">
                       {MOCK_TABLES.map((table) => (
                         <Badge
                           key={table}
                           variant={selectedTables.includes(table) ? "default" : "outline"}
-                          className={cn(
-                            "cursor-pointer transition-colors",
-                            selectedTables.includes(table) 
-                              ? "bg-primary text-primary-foreground" 
-                              : "hover:bg-muted"
-                          )}
+                          className={cn("cursor-pointer transition-colors", selectedTables.includes(table) ? "bg-primary text-primary-foreground" : "hover:bg-muted")}
                           onClick={() => handleTableToggle(table)}
                         >
                           {table}
@@ -228,33 +290,23 @@ export default function AudienceCreatePOC() {
                       ))}
                     </div>
                   </div>
-
-                  {/* Schema Dropdown */}
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium">
-                      Schema <span className="text-muted-foreground text-xs">(optional)</span>
-                    </Label>
+                    <Label className="text-sm font-medium">Schema <span className="text-muted-foreground text-xs">(optional)</span></Label>
                     <Select value={selectedSchema} onValueChange={setSelectedSchema}>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select schema..." />
-                      </SelectTrigger>
+                      <SelectTrigger className="w-full"><SelectValue placeholder="Select schema..." /></SelectTrigger>
                       <SelectContent className="bg-popover z-50">
-                        {MOCK_SCHEMAS.map((schema) => (
-                          <SelectItem key={schema} value={schema}>
-                            {schema}
-                          </SelectItem>
-                        ))}
+                        {MOCK_SCHEMAS.map((schema) => (<SelectItem key={schema} value={schema}>{schema}</SelectItem>))}
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
-                
                 <p className="text-xs text-muted-foreground flex items-start gap-1.5">
                   <HelpCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-                  Select the table(s) and optional schema. If you're unsure about the schema, just pick the table.
+                  Select the table(s) and optional schema.
                 </p>
               </CardContent>
             </Card>
+            )}
 
             {/* 2. Natural Language Input */}
             <Card>
