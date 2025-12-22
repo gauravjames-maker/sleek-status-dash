@@ -15,9 +15,6 @@ import Templates from "./pages/Templates";
 import TemplateDetail from "./pages/TemplateDetail";
 import Audience from "./pages/Audience";
 import AudienceCreate from "./pages/AudienceCreate";
-import AudienceCreatePOC from "./pages/AudienceCreatePOC";
-import AudienceStudio from "./pages/AudienceStudio";
-import AudienceStudioBuilder from "./pages/AudienceStudioBuilder";
 import CampaignAPI from "./pages/CampaignAPI";
 import CampaignAPIDetail from "./pages/CampaignAPIDetail";
 import NotFound from "./pages/NotFound";
@@ -41,10 +38,6 @@ const App = () => (
           <Route path="/people/blueprints/builder/:id" element={<BlueprintBuilder />} />
           <Route path="/people/audience" element={<Audience />} />
           <Route path="/people/audience/create" element={<AudienceCreate />} />
-          <Route path="/people/audience/create-poc" element={<AudienceCreatePOC />} />
-          <Route path="/people/audience-studio" element={<AudienceStudio />} />
-          <Route path="/people/audience-studio/create" element={<AudienceStudioBuilder />} />
-          <Route path="/people/audience-studio/edit/:id" element={<AudienceStudioBuilder />} />
           <Route path="/content/templates" element={<Templates />} />
           <Route path="/content/templates/:id" element={<TemplateDetail />} />
           <Route path="/admin/campaign-api" element={<CampaignAPI />} />
