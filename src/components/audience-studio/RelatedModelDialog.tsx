@@ -239,15 +239,15 @@ export const RelatedModelDialog = ({
               Timestamp Column (for time-based filters)
             </Label>
             <Select 
-              value={formData.timestampColumn} 
-              onValueChange={(v) => setFormData(prev => ({ ...prev, timestampColumn: v }))}
+              value={formData.timestampColumn || "__none__"} 
+              onValueChange={(v) => setFormData(prev => ({ ...prev, timestampColumn: v === "__none__" ? "" : v }))}
               disabled={!selectedTable}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Optional: select timestamp column" />
               </SelectTrigger>
               <SelectContent className="bg-popover">
-                <SelectItem value="">None</SelectItem>
+                <SelectItem value="__none__">None</SelectItem>
                 {selectedTable?.columns
                   .filter(c => c.type === "timestamp")
                   .map((col) => (
