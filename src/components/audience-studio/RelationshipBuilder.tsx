@@ -124,11 +124,42 @@ export const RelationshipBuilder = ({
 
             {relationship && (
               <div className="space-y-3">
+                {/* Primary table selector for this relationship */}
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">
+                    Primary table for this join
+                  </label>
+                  <Select
+                    value={relationship.leftTable}
+                    onValueChange={(value) => {
+                      // Swap the tables if the user selects the other table as primary
+                      if (value === relationship.rightTable) {
+                        updateRelationship(relationship.id, {
+                          leftTable: relationship.rightTable,
+                          rightTable: relationship.leftTable,
+                          leftColumn: relationship.rightColumn,
+                          rightColumn: relationship.leftColumn,
+                        });
+                      } else {
+                        updateRelationship(relationship.id, { leftTable: value });
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="h-9 w-[200px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-popover">
+                      <SelectItem value={primaryTable}>{primaryTable}</SelectItem>
+                      <SelectItem value={table}>{table}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 <div className="flex items-center gap-2">
                   {/* Left table column */}
                   <div className="flex-1">
                     <label className="text-xs text-muted-foreground mb-1 block">
-                      {primaryTable} column
+                      {relationship.leftTable} column
                     </label>
                     <Select
                       value={relationship.leftColumn}
@@ -140,7 +171,7 @@ export const RelationshipBuilder = ({
                         <SelectValue placeholder="Select column" />
                       </SelectTrigger>
                       <SelectContent className="bg-popover">
-                        {availableColumns[primaryTable]?.map((col) => (
+                        {availableColumns[relationship.leftTable]?.map((col) => (
                           <SelectItem key={col} value={col}>
                             {col}
                           </SelectItem>
@@ -154,7 +185,7 @@ export const RelationshipBuilder = ({
                   {/* Right table column */}
                   <div className="flex-1">
                     <label className="text-xs text-muted-foreground mb-1 block">
-                      {table} column
+                      {relationship.rightTable} column
                     </label>
                     <Select
                       value={relationship.rightColumn}
@@ -168,7 +199,7 @@ export const RelationshipBuilder = ({
                         <SelectValue placeholder="Select column" />
                       </SelectTrigger>
                       <SelectContent className="bg-popover">
-                        {availableColumns[table]?.map((col) => (
+                        {availableColumns[relationship.rightTable]?.map((col) => (
                           <SelectItem key={col} value={col}>
                             {col}
                           </SelectItem>
@@ -197,7 +228,7 @@ export const RelationshipBuilder = ({
                         INNER JOIN (matching only)
                       </SelectItem>
                       <SelectItem value="LEFT">
-                        LEFT JOIN (keep all primary)
+                        LEFT JOIN (keep all from {relationship.leftTable})
                       </SelectItem>
                     </SelectContent>
                   </Select>
