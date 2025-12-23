@@ -7,7 +7,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
-import { ArrowRight, Link2, Trash2 } from "lucide-react";
+import { ArrowRight, Link2, Trash2, Crown } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 export interface JoinRelationship {
   id: string;
@@ -35,15 +36,23 @@ export const RelationshipBuilder = ({
 }: RelationshipBuilderProps) => {
   const generateId = () => Math.random().toString(36).substring(2, 9);
 
-  const addRelationship = (relatedTable: string) => {
-    const existing = relationships.find((r) => r.rightTable === relatedTable);
+  // Get all selected tables (primary + related)
+  const allTables = [primaryTable, ...relatedTables];
+
+  const addRelationship = (tableA: string, tableB: string) => {
+    // Check if relationship already exists between these two tables
+    const existing = relationships.find(
+      (r) =>
+        (r.leftTable === tableA && r.rightTable === tableB) ||
+        (r.leftTable === tableB && r.rightTable === tableA)
+    );
     if (existing) return;
 
     const newRelationship: JoinRelationship = {
       id: generateId(),
-      leftTable: primaryTable,
+      leftTable: tableA,
       leftColumn: "",
-      rightTable: relatedTable,
+      rightTable: tableB,
       rightColumn: "",
       joinType: "INNER",
     };
@@ -64,9 +73,27 @@ export const RelationshipBuilder = ({
     onRelationshipsChange(relationships.filter((r) => r.id !== id));
   };
 
+  const swapPrimaryTable = (relationship: JoinRelationship) => {
+    updateRelationship(relationship.id, {
+      leftTable: relationship.rightTable,
+      rightTable: relationship.leftTable,
+      leftColumn: relationship.rightColumn,
+      rightColumn: relationship.leftColumn,
+    });
+  };
+
   const getJoinSummary = (rel: JoinRelationship): string => {
-    if (!rel.leftColumn || !rel.rightColumn) return "Select join keys";
+    if (!rel.leftColumn || !rel.rightColumn) return "Select join keys to complete";
     return `${rel.leftTable} ${rel.joinType} JOIN ${rel.rightTable} ON ${rel.leftTable}.${rel.leftColumn} = ${rel.rightTable}.${rel.rightColumn}`;
+  };
+
+  // Find relationship for a given table pair
+  const findRelationship = (tableA: string, tableB: string) => {
+    return relationships.find(
+      (r) =>
+        (r.leftTable === tableA && r.rightTable === tableB) ||
+        (r.leftTable === tableB && r.rightTable === tableA)
+    );
   };
 
   return (
@@ -74,33 +101,34 @@ export const RelationshipBuilder = ({
       <div>
         <h3 className="font-semibold text-sm mb-2">Define Relationships</h3>
         <p className="text-sm text-muted-foreground mb-4">
-          Connect your primary entity ({primaryTable}) to related tables
+          Configure joins between your selected tables. For each join, select which table should be the primary (driving) table.
         </p>
       </div>
 
-      {/* Primary table */}
-      <Card className="p-4 bg-primary/5 border-primary/20">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded bg-primary flex items-center justify-center">
-            <span className="text-xs font-bold text-primary-foreground">P</span>
-          </div>
-          <div>
-            <div className="font-medium">{primaryTable}</div>
-            <div className="text-xs text-muted-foreground">Primary entity</div>
-          </div>
-        </div>
-      </Card>
-
-      {/* Relationships */}
+      {/* Table relationship cards */}
       {relatedTables.map((table) => {
-        const relationship = relationships.find((r) => r.rightTable === table);
+        const relationship = findRelationship(primaryTable, table);
+        const isPrimaryForJoin = relationship?.leftTable === table;
 
         return (
-          <Card key={table} className="p-4">
+          <Card 
+            key={table} 
+            className={`p-4 transition-all ${
+              isPrimaryForJoin 
+                ? 'bg-primary/5 border-primary/30' 
+                : ''
+            }`}
+          >
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <Link2 className="w-4 h-4 text-muted-foreground" />
                 <span className="font-medium">{table}</span>
+                {relationship && isPrimaryForJoin && (
+                  <Badge variant="secondary" className="text-xs gap-1">
+                    <Crown className="w-3 h-3" />
+                    Primary for this join
+                  </Badge>
+                )}
               </div>
               {relationship ? (
                 <Button
@@ -115,7 +143,7 @@ export const RelationshipBuilder = ({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => addRelationship(table)}
+                  onClick={() => addRelationship(primaryTable, table)}
                 >
                   Configure Join
                 </Button>
@@ -125,42 +153,50 @@ export const RelationshipBuilder = ({
             {relationship && (
               <div className="space-y-3">
                 {/* Primary table selector for this relationship */}
-                <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">
-                    Primary table for this join
+                <div className="p-3 bg-muted/50 rounded-lg">
+                  <label className="text-xs font-medium text-foreground mb-2 block">
+                    Which table should be primary for this join?
                   </label>
-                  <Select
-                    value={relationship.leftTable}
-                    onValueChange={(value) => {
-                      // Swap the tables if the user selects the other table as primary
-                      if (value === relationship.rightTable) {
-                        updateRelationship(relationship.id, {
-                          leftTable: relationship.rightTable,
-                          rightTable: relationship.leftTable,
-                          leftColumn: relationship.rightColumn,
-                          rightColumn: relationship.leftColumn,
-                        });
-                      } else {
-                        updateRelationship(relationship.id, { leftTable: value });
-                      }
-                    }}
-                  >
-                    <SelectTrigger className="h-9 w-[200px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-popover">
-                      <SelectItem value={primaryTable}>{primaryTable}</SelectItem>
-                      <SelectItem value={table}>{table}</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="flex gap-2">
+                    <Button
+                      variant={relationship.leftTable === primaryTable ? "default" : "outline"}
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => {
+                        if (relationship.leftTable !== primaryTable) {
+                          swapPrimaryTable(relationship);
+                        }
+                      }}
+                    >
+                      {relationship.leftTable === primaryTable && <Crown className="w-3 h-3 mr-1" />}
+                      {primaryTable}
+                    </Button>
+                    <Button
+                      variant={relationship.leftTable === table ? "default" : "outline"}
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => {
+                        if (relationship.leftTable !== table) {
+                          swapPrimaryTable(relationship);
+                        }
+                      }}
+                    >
+                      {relationship.leftTable === table && <Crown className="w-3 h-3 mr-1" />}
+                      {table}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    The primary table drives the join — all its rows are preserved in LEFT JOINs.
+                  </p>
                 </div>
 
                 <div className="flex items-center gap-2">
                   {/* Primary (left) table column */}
                   <div className="flex-1">
-                    <label className="text-xs text-muted-foreground mb-1 block">
+                    <label className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
+                      <Crown className="w-3 h-3 text-primary" />
                       <span className="font-medium text-primary">{relationship.leftTable}</span>
-                      <span className="ml-1 text-xs">(primary)</span>
+                      <span className="text-xs">(primary)</span>
                     </label>
                     <Select
                       value={relationship.leftColumn}
@@ -222,15 +258,15 @@ export const RelationshipBuilder = ({
                       updateRelationship(relationship.id, { joinType: value })
                     }
                   >
-                    <SelectTrigger className="h-9 w-[200px]">
+                    <SelectTrigger className="h-9 w-full">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-popover">
                       <SelectItem value="INNER">
-                        INNER JOIN (matching only)
+                        INNER JOIN — Only rows matching in both tables
                       </SelectItem>
                       <SelectItem value="LEFT">
-                        LEFT JOIN (keep all {relationship.leftTable})
+                        LEFT JOIN — Keep all rows from {relationship.leftTable}
                       </SelectItem>
                     </SelectContent>
                   </Select>
