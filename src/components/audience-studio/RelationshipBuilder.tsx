@@ -156,10 +156,11 @@ export const RelationshipBuilder = ({
                 </div>
 
                 <div className="flex items-center gap-2">
-                  {/* Left table column */}
+                  {/* Primary (left) table column */}
                   <div className="flex-1">
                     <label className="text-xs text-muted-foreground mb-1 block">
-                      {relationship.leftTable} column
+                      <span className="font-medium text-primary">{relationship.leftTable}</span>
+                      <span className="ml-1 text-xs">(primary)</span>
                     </label>
                     <Select
                       value={relationship.leftColumn}
@@ -182,10 +183,11 @@ export const RelationshipBuilder = ({
 
                   <ArrowRight className="w-5 h-5 text-muted-foreground mt-5" />
 
-                  {/* Right table column */}
+                  {/* Related (right) table column */}
                   <div className="flex-1">
                     <label className="text-xs text-muted-foreground mb-1 block">
-                      {relationship.rightTable} column
+                      <span className="font-medium">{relationship.rightTable}</span>
+                      <span className="ml-1 text-xs">(related)</span>
                     </label>
                     <Select
                       value={relationship.rightColumn}
@@ -228,7 +230,7 @@ export const RelationshipBuilder = ({
                         INNER JOIN (matching only)
                       </SelectItem>
                       <SelectItem value="LEFT">
-                        LEFT JOIN (keep all from {relationship.leftTable})
+                        LEFT JOIN (keep all {relationship.leftTable})
                       </SelectItem>
                     </SelectContent>
                   </Select>
