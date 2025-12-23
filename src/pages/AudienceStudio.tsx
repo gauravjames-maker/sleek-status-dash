@@ -30,18 +30,41 @@ const AudienceStudio = () => {
   );
 
   const handleSaveParentModel = (data: Omit<ParentModel, "id" | "createdAt" | "updatedAt">) => {
-    const newModel: ParentModel = {
-      ...data,
-      id: `pm-${Date.now()}`,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    setParentModels(prev => [...prev, newModel]);
+    if (editingParent) {
+      // Update existing model
+      setParentModels(prev => prev.map(m => 
+        m.id === editingParent.id 
+          ? { ...m, ...data, updatedAt: new Date().toISOString() }
+          : m
+      ));
+      setEditingParent(null);
+    } else {
+      // Create new model
+      const newModel: ParentModel = {
+        ...data,
+        id: `pm-${Date.now()}`,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      setParentModels(prev => [...prev, newModel]);
+    }
   };
 
   const handleSaveRelatedModel = (data: Omit<RelatedModel, "id">) => {
     const newModel: RelatedModel = { ...data, id: `rm-${Date.now()}` };
     setRelatedModels(prev => [...prev, newModel]);
+  };
+
+  const handleEditParent = (model: ParentModel) => {
+    setEditingParent(model);
+    setShowParentDialog(true);
+  };
+
+  const handleCloseParentDialog = (open: boolean) => {
+    setShowParentDialog(open);
+    if (!open) {
+      setEditingParent(null);
+    }
   };
 
   return (
@@ -108,7 +131,7 @@ const AudienceStudio = () => {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
                 {parentModels.map((model) => (
-                  <ParentModelCard key={model.id} model={model} relatedModels={relatedModels.filter(rm => rm.parentModelId === model.id)} onEdit={setEditingParent} onDelete={() => {}} onViewRelations={() => setSelectedParent(model)} />
+                  <ParentModelCard key={model.id} model={model} relatedModels={relatedModels.filter(rm => rm.parentModelId === model.id)} onEdit={handleEditParent} onDelete={() => {}} onViewRelations={() => setSelectedParent(model)} />
                 ))}
               </div>
               {selectedParent && (
@@ -125,7 +148,7 @@ const AudienceStudio = () => {
         </div>
       </div>
 
-      <ParentModelDialog open={showParentDialog} onOpenChange={setShowParentDialog} model={editingParent} onSave={handleSaveParentModel} />
+      <ParentModelDialog open={showParentDialog} onOpenChange={handleCloseParentDialog} model={editingParent} onSave={handleSaveParentModel} />
       {selectedParent && <RelatedModelDialog open={showRelatedDialog} onOpenChange={setShowRelatedDialog} parentModel={selectedParent} onSave={handleSaveRelatedModel} />}
     </div>
   );
