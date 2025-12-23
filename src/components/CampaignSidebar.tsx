@@ -36,7 +36,8 @@ const navItems: SidebarNavItem[] = [
     expandable: true,
     iconColor: "text-[#10B981]",
     children: [
-      { label: "Audience", href: "/people/audience", icon: null },
+      { label: "Audience Studio", href: "/people/audience-studio", icon: null },
+      { label: "AI SQL Builder", href: "/people/audience/create", icon: null },
       { label: "Blueprints", href: "/people/blueprints", icon: null },
       { label: "Profile lookup", href: "/people/profile-lookup", icon: null },
     ],
