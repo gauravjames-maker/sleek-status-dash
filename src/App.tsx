@@ -17,6 +17,8 @@ import Audience from "./pages/Audience";
 import AudienceCreate from "./pages/AudienceCreate";
 import AudienceStudio from "./pages/AudienceStudio";
 import AudienceBuilder from "./pages/AudienceBuilder";
+import AudienceStudioDBT from "./pages/AudienceStudioDBT";
+import DBTBuilder from "./pages/DBTBuilder";
 import CampaignAPI from "./pages/CampaignAPI";
 import CampaignAPIDetail from "./pages/CampaignAPIDetail";
 import NotFound from "./pages/NotFound";
@@ -42,6 +44,8 @@ const App = () => (
           <Route path="/people/audience/create" element={<AudienceCreate />} />
           <Route path="/people/audience-studio" element={<AudienceStudio />} />
           <Route path="/people/audience-studio/builder" element={<AudienceBuilder />} />
+          <Route path="/people/audience-studio-dbt" element={<AudienceStudioDBT />} />
+          <Route path="/people/audience-studio-dbt/builder" element={<DBTBuilder />} />
           <Route path="/content/templates" element={<Templates />} />
           <Route path="/content/templates/:id" element={<TemplateDetail />} />
           <Route path="/admin/campaign-api" element={<CampaignAPI />} />
