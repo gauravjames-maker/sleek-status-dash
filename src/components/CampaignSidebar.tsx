@@ -37,6 +37,7 @@ const navItems: SidebarNavItem[] = [
     iconColor: "text-[#10B981]",
     children: [
       { label: "Audience Studio", href: "/people/audience-studio", icon: null },
+      { label: "Audience Studio DBT", href: "/people/audience-studio-dbt", icon: null },
       { label: "AI SQL Builder", href: "/people/audience/create", icon: null },
       { label: "Blueprints", href: "/people/blueprints", icon: null },
       { label: "Profile lookup", href: "/people/profile-lookup", icon: null },

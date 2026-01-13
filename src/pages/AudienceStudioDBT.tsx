@@ -8,24 +8,35 @@ import {
   Plus, 
   Search, 
   Database, 
-  Play, 
+  Users,
   Settings, 
   Pencil, 
   Trash2,
-  RefreshCw,
-  GitBranch,
-  Cloud,
+  Play,
   CheckCircle,
   XCircle,
   Clock,
   Loader2,
-  ExternalLink
+  GitBranch,
+  Layers,
+  Sparkles
 } from "lucide-react";
 import { CampaignSidebar } from "@/components/CampaignSidebar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { mockDBTModels, mockDBTConnection, type DBTModel, type DBTConnection } from "@/types/dbt-studio";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { 
+  mockParentModels, 
+  mockAudiences, 
+  mockWarehouseTables,
+  mockDBTConnection,
+  audienceTemplates,
+  type DBTParentModel, 
+  type DBTAudience,
+  type WarehouseTable,
+} from "@/types/dbt-studio";
 import { DBTConnectionCard } from "@/components/dbt-studio/DBTConnectionCard";
+import { ParentModelSetup } from "@/components/dbt-studio/ParentModelSetup";
 import { formatDistanceToNow } from "date-fns";
 import {
   AlertDialog,
@@ -40,54 +51,63 @@ import {
 
 const AudienceStudioDBT = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("models");
+  const [activeTab, setActiveTab] = useState("audiences");
   const [searchQuery, setSearchQuery] = useState("");
-  const [models, setModels] = useState<DBTModel[]>(mockDBTModels);
-  const [connection, setConnection] = useState<DBTConnection | null>(mockDBTConnection);
-  const [deleteModel, setDeleteModel] = useState<DBTModel | null>(null);
-  const [runningModel, setRunningModel] = useState<string | null>(null);
+  const [parentModels, setParentModels] = useState<DBTParentModel[]>(mockParentModels);
+  const [audiences, setAudiences] = useState<DBTAudience[]>(mockAudiences);
+  const [warehouseTables] = useState<WarehouseTable[]>(mockWarehouseTables);
+  const [deleteAudience, setDeleteAudience] = useState<DBTAudience | null>(null);
+  const [runningAudience, setRunningAudience] = useState<string | null>(null);
 
-  const filteredModels = models.filter(m => 
-    m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    m.description?.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredAudiences = audiences.filter(a => 
+    a.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    a.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const getStatusBadge = (status: DBTModel['status']) => {
+  const getStatusBadge = (status: DBTAudience['status']) => {
     switch (status) {
       case 'active':
-        return <Badge className="bg-status-completed-bg text-green-700 border-0"><CheckCircle className="w-3 h-3 mr-1" />Active</Badge>;
+        return <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-0"><CheckCircle className="w-3 h-3 mr-1" />Active</Badge>;
       case 'running':
-        return <Badge className="bg-status-sending-bg text-amber-700 border-0"><Loader2 className="w-3 h-3 mr-1 animate-spin" />Running</Badge>;
+        return <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-0"><Loader2 className="w-3 h-3 mr-1 animate-spin" />Running</Badge>;
       case 'error':
-        return <Badge className="bg-status-failed-bg text-red-700 border-0"><XCircle className="w-3 h-3 mr-1" />Error</Badge>;
+        return <Badge className="bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-0"><XCircle className="w-3 h-3 mr-1" />Error</Badge>;
       default:
         return <Badge variant="secondary"><Clock className="w-3 h-3 mr-1" />Draft</Badge>;
     }
   };
 
-  const handleRunModel = async (model: DBTModel) => {
-    setRunningModel(model.id);
-    // Simulate running
+  const handleRunAudience = async (audience: DBTAudience) => {
+    setRunningAudience(audience.id);
     setTimeout(() => {
-      setModels(prev => prev.map(m => 
-        m.id === model.id 
-          ? { ...m, status: 'active' as const, lastRun: new Date().toISOString() }
-          : m
+      setAudiences(prev => prev.map(a => 
+        a.id === audience.id 
+          ? { ...a, status: 'active' as const, lastRun: new Date().toISOString() }
+          : a
       ));
-      setRunningModel(null);
+      setRunningAudience(null);
     }, 3000);
   };
 
-  const handleDeleteModel = () => {
-    if (deleteModel) {
-      setModels(prev => prev.filter(m => m.id !== deleteModel.id));
-      setDeleteModel(null);
+  const handleDeleteAudience = () => {
+    if (deleteAudience) {
+      setAudiences(prev => prev.filter(a => a.id !== deleteAudience.id));
+      setDeleteAudience(null);
     }
   };
 
-  const totalAudience = models.reduce((sum, m) => sum + (m.audienceCount || 0), 0);
-  const activeModels = models.filter(m => m.status === 'active').length;
-  const errorModels = models.filter(m => m.status === 'error').length;
+  const handleSaveParentModel = (model: DBTParentModel) => {
+    setParentModels(prev => {
+      const exists = prev.find(p => p.id === model.id);
+      if (exists) {
+        return prev.map(p => p.id === model.id ? model : p);
+      }
+      return [...prev, model];
+    });
+  };
+
+  const totalAudience = audiences.reduce((sum, a) => sum + a.estimatedSize, 0);
+  const activeAudiences = audiences.filter(a => a.status === 'active').length;
 
   return (
     <div className="flex h-screen bg-background">
@@ -104,7 +124,7 @@ const AudienceStudioDBT = () => {
             </div>
             <Button onClick={() => navigate("/people/audience-studio-dbt/builder")}>
               <Plus className="h-4 w-4 mr-2" />
-              New DBT Model
+              New Audience
             </Button>
           </div>
         </header>
@@ -114,211 +134,213 @@ const AudienceStudioDBT = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             <Card>
               <CardHeader className="pb-2">
-                <CardDescription>Total Models</CardDescription>
-                <CardTitle className="text-3xl">{models.length}</CardTitle>
+                <CardDescription>Parent Models</CardDescription>
+                <CardTitle className="text-3xl">{parentModels.length}</CardTitle>
               </CardHeader>
             </Card>
             <Card>
               <CardHeader className="pb-2">
-                <CardDescription>Active Models</CardDescription>
-                <CardTitle className="text-3xl text-green-600">{activeModels}</CardTitle>
+                <CardDescription>Total Audiences</CardDescription>
+                <CardTitle className="text-3xl">{audiences.length}</CardTitle>
               </CardHeader>
             </Card>
             <Card>
               <CardHeader className="pb-2">
-                <CardDescription>Total Audience</CardDescription>
+                <CardDescription>Active Audiences</CardDescription>
+                <CardTitle className="text-3xl text-green-600">{activeAudiences}</CardTitle>
+              </CardHeader>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardDescription>Total Reach</CardDescription>
                 <CardTitle className="text-3xl">{totalAudience.toLocaleString()}</CardTitle>
-              </CardHeader>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardDescription>Errors</CardDescription>
-                <CardTitle className="text-3xl text-red-600">{errorModels}</CardTitle>
               </CardHeader>
             </Card>
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="mb-6">
-              <TabsTrigger value="models" className="gap-2"><Database className="w-4 h-4" />DBT Models</TabsTrigger>
-              <TabsTrigger value="connections" className="gap-2"><Cloud className="w-4 h-4" />Connections</TabsTrigger>
+              <TabsTrigger value="audiences" className="gap-2"><Users className="w-4 h-4" />Audiences</TabsTrigger>
+              <TabsTrigger value="schema" className="gap-2"><Database className="w-4 h-4" />Schema Setup</TabsTrigger>
               <TabsTrigger value="settings" className="gap-2"><Settings className="w-4 h-4" />Settings</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="models">
-              <div className="mb-4 flex items-center justify-between">
-                <div className="relative w-80">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input 
-                    placeholder="Search models..." 
-                    value={searchQuery} 
-                    onChange={(e) => setSearchQuery(e.target.value)} 
-                    className="pl-10" 
-                  />
+            {/* Audiences Tab */}
+            <TabsContent value="audiences">
+              <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                {/* Audiences List */}
+                <div className="lg:col-span-3">
+                  <div className="mb-4 flex items-center justify-between">
+                    <div className="relative w-80">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input 
+                        placeholder="Search audiences..." 
+                        value={searchQuery} 
+                        onChange={(e) => setSearchQuery(e.target.value)} 
+                        className="pl-10" 
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="bg-card rounded-lg border border-border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Audience Name</TableHead>
+                          <TableHead>Parent Model</TableHead>
+                          <TableHead>Size</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Last Run</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredAudiences.map((audience) => (
+                          <TableRow key={audience.id} className="group">
+                            <TableCell>
+                              <div>
+                                <p className="font-medium">{audience.name}</p>
+                                <p className="text-xs text-muted-foreground">{audience.description}</p>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="gap-1">
+                                <Layers className="w-3 h-3" />
+                                {audience.parentModelName}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="font-medium">
+                              {audience.estimatedSize.toLocaleString()}
+                            </TableCell>
+                            <TableCell>{getStatusBadge(audience.status)}</TableCell>
+                            <TableCell className="text-muted-foreground">
+                              {audience.lastRun 
+                                ? formatDistanceToNow(new Date(audience.lastRun), { addSuffix: true })
+                                : 'Never'
+                              }
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-8 w-8"
+                                  onClick={() => navigate(`/people/audience-studio-dbt/builder?id=${audience.id}`)}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-8 w-8"
+                                  onClick={() => handleRunAudience(audience)}
+                                  disabled={runningAudience === audience.id}
+                                >
+                                  {runningAudience === audience.id ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <Play className="h-4 w-4" />
+                                  )}
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-8 w-8 text-destructive hover:text-destructive"
+                                  onClick={() => setDeleteAudience(audience)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                        {filteredAudiences.length === 0 && (
+                          <TableRow>
+                            <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                              No audiences found. Create your first audience to get started.
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </div>
-                <Button variant="outline" size="sm">
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Sync All
-                </Button>
-              </div>
-              
-              <div className="bg-card rounded-lg border border-border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Model Name</TableHead>
-                      <TableHead>Description</TableHead>
-                      <TableHead>Audience Size</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Last Run</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredModels.map((model) => (
-                      <TableRow key={model.id} className="group">
-                        <TableCell className="font-medium">
-                          <div className="flex items-center gap-2">
-                            <GitBranch className="w-4 h-4 text-muted-foreground" />
-                            {model.name}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-muted-foreground max-w-xs truncate">
-                          {model.description}
-                        </TableCell>
-                        <TableCell>
-                          {model.audienceCount?.toLocaleString() || '-'}
-                        </TableCell>
-                        <TableCell>{getStatusBadge(model.status)}</TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {model.lastRun 
-                            ? formatDistanceToNow(new Date(model.lastRun), { addSuffix: true })
-                            : 'Never'
-                          }
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-8 w-8"
-                              onClick={() => navigate(`/people/audience-studio-dbt/builder?id=${model.id}`)}
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-8 w-8"
-                              onClick={() => handleRunModel(model)}
-                              disabled={runningModel === model.id}
-                            >
-                              {runningModel === model.id ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <Play className="h-4 w-4" />
-                              )}
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-8 w-8 text-destructive hover:text-destructive"
-                              onClick={() => setDeleteModel(model)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                    {filteredModels.length === 0 && (
-                      <TableRow>
-                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                          No models found. Create your first DBT model to get started.
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
+
+                {/* Templates Sidebar */}
+                <div className="lg:col-span-1">
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <Sparkles className="w-4 h-4" />
+                        Quick Templates
+                      </CardTitle>
+                      <CardDescription>Start with pre-built segments</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      {audienceTemplates.map((template) => (
+                        <button
+                          key={template.id}
+                          onClick={() => navigate(`/people/audience-studio-dbt/builder?template=${template.id}`)}
+                          className="w-full p-3 text-left rounded-lg border border-border hover:bg-accent transition-colors"
+                        >
+                          <p className="font-medium text-sm">{template.name}</p>
+                          <p className="text-xs text-muted-foreground">{template.description}</p>
+                        </button>
+                      ))}
+                    </CardContent>
+                  </Card>
+                </div>
               </div>
             </TabsContent>
 
-            <TabsContent value="connections">
+            {/* Schema Setup Tab (Admin) */}
+            <TabsContent value="schema">
+              <ParentModelSetup
+                parentModels={parentModels}
+                warehouseTables={warehouseTables}
+                onSaveModel={handleSaveParentModel}
+                onDeleteModel={(id) => setParentModels(prev => prev.filter(p => p.id !== id))}
+              />
+            </TabsContent>
+
+            {/* Settings Tab */}
+            <TabsContent value="settings">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <DBTConnectionCard 
-                  connection={connection} 
-                  onConnect={() => setConnection(mockDBTConnection)}
-                  onDisconnect={() => setConnection(null)}
+                  connection={mockDBTConnection} 
+                  onConnect={() => {}}
+                  onDisconnect={() => {}}
                 />
                 
-                <Card className="border-dashed">
+                <Card>
                   <CardHeader>
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <Database className="w-5 h-5" />
-                      dbt Core (Local)
-                    </CardTitle>
-                    <CardDescription>
-                      Connect to a local dbt project for development
-                    </CardDescription>
+                    <CardTitle className="text-base">GitHub Integration</CardTitle>
+                    <CardDescription>Push dbt models to your repository</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <Button variant="outline" className="w-full">
-                      Configure Local Connection
+                      <GitBranch className="w-4 h-4 mr-2" />
+                      Connect GitHub
                     </Button>
                   </CardContent>
                 </Card>
               </div>
             </TabsContent>
-
-            <TabsContent value="settings">
-              <Card>
-                <CardHeader>
-                  <CardTitle>DBT Settings</CardTitle>
-                  <CardDescription>Configure your dbt integration preferences</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between py-3 border-b">
-                    <div>
-                      <p className="font-medium">Auto-sync models</p>
-                      <p className="text-sm text-muted-foreground">Automatically sync model metadata from dbt Cloud</p>
-                    </div>
-                    <Button variant="outline" size="sm">Configure</Button>
-                  </div>
-                  <div className="flex items-center justify-between py-3 border-b">
-                    <div>
-                      <p className="font-medium">GitHub Integration</p>
-                      <p className="text-sm text-muted-foreground">Push generated models to your GitHub repository</p>
-                    </div>
-                    <Button variant="outline" size="sm">
-                      <ExternalLink className="w-4 h-4 mr-2" />
-                      Connect
-                    </Button>
-                  </div>
-                  <div className="flex items-center justify-between py-3">
-                    <div>
-                      <p className="font-medium">Default Warehouse</p>
-                      <p className="text-sm text-muted-foreground">Snowflake (connected via dbt Cloud)</p>
-                    </div>
-                    <Badge variant="outline">Snowflake</Badge>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
           </Tabs>
         </div>
       </div>
 
-      <AlertDialog open={!!deleteModel} onOpenChange={() => setDeleteModel(null)}>
+      <AlertDialog open={!!deleteAudience} onOpenChange={() => setDeleteAudience(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Model</AlertDialogTitle>
+            <AlertDialogTitle>Delete Audience</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete "{deleteModel?.name}"? This action cannot be undone.
+              Are you sure you want to delete "{deleteAudience?.name}"? This will also remove the associated dbt model.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteModel} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction onClick={handleDeleteAudience} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>

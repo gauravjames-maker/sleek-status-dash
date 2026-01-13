@@ -1,21 +1,5 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import {
-  ReactFlow,
-  Background,
-  Controls,
-  MiniMap,
-  addEdge,
-  useNodesState,
-  useEdgesState,
-  type Connection,
-  type Node,
-  type Edge,
-  Panel,
-} from "@xyflow/react";
-import "@xyflow/react/dist/style.css";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { 
   ArrowLeft, 
   Save, 
@@ -23,111 +7,186 @@ import {
   Sparkles,
   Code,
   Eye,
-  Settings,
-  Loader2
+  Loader2,
+  Users,
+  Plus,
+  Trash2,
+  ChevronDown
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Separator } from "@/components/ui/separator";
 import { CampaignSidebar } from "@/components/CampaignSidebar";
-import { DBTSourcesSidebar } from "@/components/dbt-studio/DBTSourcesSidebar";
-import { DBTNodeProperties } from "@/components/dbt-studio/DBTNodeProperties";
-import { DBTPreviewPanel } from "@/components/dbt-studio/DBTPreviewPanel";
+import { FilterGroupBuilder } from "@/components/dbt-studio/FilterGroupBuilder";
 import { DBTAICopilot } from "@/components/dbt-studio/DBTAICopilot";
-import { SourceNode } from "@/components/dbt-studio/nodes/SourceNode";
-import { JoinNode } from "@/components/dbt-studio/nodes/JoinNode";
-import { FilterNode } from "@/components/dbt-studio/nodes/FilterNode";
-import { AggregateNode } from "@/components/dbt-studio/nodes/AggregateNode";
-import { OutputNode } from "@/components/dbt-studio/nodes/OutputNode";
-import { mockWarehouseTables } from "@/types/dbt-studio";
-
-const nodeTypes = {
-  source: SourceNode,
-  join: JoinNode,
-  filter: FilterNode,
-  aggregate: AggregateNode,
-  output: OutputNode,
-};
-
-const initialNodes: Node[] = [];
-const initialEdges: Edge[] = [];
+import { 
+  mockParentModels, 
+  type DBTParentModel, 
+  type DBTAudience,
+  type FilterGroup,
+  type AudienceFilter,
+  type AudiencePreview 
+} from "@/types/dbt-studio";
 
 const DBTBuilder = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const modelId = searchParams.get('id');
+  const audienceId = searchParams.get('id');
   
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
-  const [modelName, setModelName] = useState(modelId ? "High Value Customers" : "New DBT Model");
-  const [selectedNode, setSelectedNode] = useState<Node | null>(null);
-  const [showPreview, setShowPreview] = useState(true);
+  const [parentModels] = useState<DBTParentModel[]>(mockParentModels);
+  const [selectedParentId, setSelectedParentId] = useState<string>(parentModels[0]?.id || "");
+  const [audienceName, setAudienceName] = useState(audienceId ? "High Value Customers" : "");
+  const [audienceDescription, setAudienceDescription] = useState("");
+  const [filterGroups, setFilterGroups] = useState<FilterGroup[]>([
+    { id: 'fg-1', logic: 'AND', filters: [] }
+  ]);
   const [showAICopilot, setShowAICopilot] = useState(false);
+  const [showSQL, setShowSQL] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  const onConnect = useCallback(
-    (params: Connection) => setEdges((eds) => addEdge(params, eds)),
-    [setEdges]
-  );
+  const selectedParent = parentModels.find(p => p.id === selectedParentId);
 
-  const onNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
-    setSelectedNode(node);
-  }, []);
+  // Preview data
+  const preview: AudiencePreview = useMemo(() => {
+    const hasFilters = filterGroups.some(fg => fg.filters.length > 0);
+    const baseCount = 150000;
+    const filteredCount = hasFilters ? Math.floor(baseCount * 0.08) : baseCount;
+    
+    return {
+      count: filteredCount,
+      totalInParent: baseCount,
+      percentage: (filteredCount / baseCount) * 100,
+      sampleData: [
+        { customer_id: 'C001', email: 'john@gmail.com', lifetime_value: 2450, loyalty_tier: 'Gold' },
+        { customer_id: 'C002', email: 'jane@company.com', lifetime_value: 1890, loyalty_tier: 'Silver' },
+        { customer_id: 'C003', email: 'bob@gmail.com', lifetime_value: 4520, loyalty_tier: 'Platinum' },
+        { customer_id: 'C004', email: 'alice@startup.io', lifetime_value: 3100, loyalty_tier: 'Gold' },
+        { customer_id: 'C005', email: 'charlie@gmail.com', lifetime_value: 890, loyalty_tier: 'Bronze' },
+      ],
+      breakdowns: [
+        { 
+          field: 'loyalty_tier', 
+          values: [
+            { label: 'Platinum', count: 1245, percentage: 10 },
+            { label: 'Gold', count: 4980, percentage: 40 },
+            { label: 'Silver', count: 3735, percentage: 30 },
+            { label: 'Bronze', count: 2490, percentage: 20 },
+          ]
+        },
+        { 
+          field: 'state', 
+          values: [
+            { label: 'California', count: 3110, percentage: 25 },
+            { label: 'New York', count: 2488, percentage: 20 },
+            { label: 'Texas', count: 1866, percentage: 15 },
+            { label: 'Other', count: 4986, percentage: 40 },
+          ]
+        },
+      ],
+    };
+  }, [filterGroups]);
 
-  const onPaneClick = useCallback(() => {
-    setSelectedNode(null);
-  }, []);
+  // Generate SQL
+  const generatedSQL = useMemo(() => {
+    if (!selectedParent) return "";
+    
+    let sql = `-- DBT Model: ${audienceName || 'new_audience'}\n`;
+    sql += `{{ config(materialized='table') }}\n\n`;
+    sql += `WITH base AS (\n`;
+    sql += `  SELECT *\n`;
+    sql += `  FROM {{ ref('${selectedParent.schema}.${selectedParent.tableName}') }}\n`;
+    sql += `)\n\n`;
 
-  const handleDrop = useCallback(
-    (event: React.DragEvent) => {
-      event.preventDefault();
-      const type = event.dataTransfer.getData("application/reactflow-type");
-      const tableData = event.dataTransfer.getData("application/reactflow-table");
+    const conditions: string[] = [];
+    
+    filterGroups.forEach(fg => {
+      fg.filters.forEach(filter => {
+        if (filter.type === 'property' && filter.column && filter.operator && filter.value !== undefined) {
+          const op = filter.operator === 'greater_than' ? '>' 
+            : filter.operator === 'less_than' ? '<'
+            : filter.operator === 'contains' ? 'LIKE'
+            : filter.operator === 'equals' ? '='
+            : '=';
+          
+          const val = filter.operator === 'contains' 
+            ? `'%${filter.value}%'`
+            : typeof filter.value === 'string' ? `'${filter.value}'` : filter.value;
+          
+          conditions.push(`${filter.column} ${op} ${val}`);
+        }
+      });
+    });
 
-      if (!type) return;
+    if (conditions.length > 0) {
+      sql += `SELECT *\n`;
+      sql += `FROM base\n`;
+      sql += `WHERE ${conditions.join('\n  AND ')}\n`;
+    } else {
+      sql += `SELECT * FROM base\n`;
+    }
 
-      const reactFlowBounds = event.currentTarget.getBoundingClientRect();
-      const position = {
-        x: event.clientX - reactFlowBounds.left,
-        y: event.clientY - reactFlowBounds.top,
-      };
+    return sql;
+  }, [selectedParent, filterGroups, audienceName]);
 
-      let newNode: Node;
+  const handleAddFilterGroup = () => {
+    setFilterGroups(prev => [...prev, { id: `fg-${Date.now()}`, logic: 'AND', filters: [] }]);
+  };
 
-      if (type === "source" && tableData) {
-        const table = JSON.parse(tableData);
-        newNode = {
-          id: `${type}-${Date.now()}`,
-          type,
-          position,
-          data: { 
-            label: table.name,
-            tableName: table.name,
-            schema: table.schema,
-            columns: table.columns,
-          },
-        };
-      } else {
-        const labels: Record<string, string> = {
-          join: "Join",
-          filter: "Filter",
-          aggregate: "Aggregate",
-          output: "Output Model",
-        };
-        newNode = {
-          id: `${type}-${Date.now()}`,
-          type,
-          position,
-          data: { label: labels[type] || type },
-        };
-      }
+  const handleUpdateFilterGroup = (groupId: string, updates: Partial<FilterGroup>) => {
+    setFilterGroups(prev => prev.map(fg => 
+      fg.id === groupId ? { ...fg, ...updates } : fg
+    ));
+  };
 
-      setNodes((nds) => [...nds, newNode]);
-    },
-    [setNodes]
-  );
+  const handleDeleteFilterGroup = (groupId: string) => {
+    setFilterGroups(prev => prev.filter(fg => fg.id !== groupId));
+  };
 
-  const handleDragOver = useCallback((event: React.DragEvent) => {
-    event.preventDefault();
-    event.dataTransfer.dropEffect = "move";
+  const handleAddFilter = (groupId: string, filter: AudienceFilter) => {
+    setFilterGroups(prev => prev.map(fg => 
+      fg.id === groupId 
+        ? { ...fg, filters: [...fg.filters, filter] }
+        : fg
+    ));
+  };
+
+  const handleUpdateFilter = (groupId: string, filterId: string, updates: Partial<AudienceFilter>) => {
+    setFilterGroups(prev => prev.map(fg => 
+      fg.id === groupId 
+        ? { ...fg, filters: fg.filters.map(f => f.id === filterId ? { ...f, ...updates } : f) }
+        : fg
+    ));
+  };
+
+  const handleDeleteFilter = (groupId: string, filterId: string) => {
+    setFilterGroups(prev => prev.map(fg => 
+      fg.id === groupId 
+        ? { ...fg, filters: fg.filters.filter(f => f.id !== filterId) }
+        : fg
+    ));
+  };
+
+  const handleAIGenerate = useCallback((prompt: string) => {
+    // Simulate AI-generated filters
+    setFilterGroups([{
+      id: 'fg-ai',
+      logic: 'AND',
+      filters: [
+        { id: 'f-ai-1', type: 'property', column: 'lifetime_value', operator: 'greater_than', value: 1000 },
+        { id: 'f-ai-2', type: 'property', column: 'email', operator: 'contains', value: '@gmail.com' },
+      ],
+    }]);
+    setAudienceName(prompt.slice(0, 50));
+    setShowAICopilot(false);
   }, []);
 
   const handleSave = async () => {
@@ -142,139 +201,6 @@ const DBTBuilder = () => {
     setIsRunning(false);
   };
 
-  const handleAIGenerate = (prompt: string) => {
-    // Simulate AI generating nodes
-    const newNodes: Node[] = [
-      {
-        id: "source-customers",
-        type: "source",
-        position: { x: 100, y: 100 },
-        data: {
-          label: "customers",
-          tableName: "customers",
-          schema: "ecommerce",
-          columns: mockWarehouseTables[0].columns,
-        },
-      },
-      {
-        id: "source-orders",
-        type: "source",
-        position: { x: 100, y: 300 },
-        data: {
-          label: "orders",
-          tableName: "orders",
-          schema: "ecommerce",
-          columns: mockWarehouseTables[1].columns,
-        },
-      },
-      {
-        id: "join-1",
-        type: "join",
-        position: { x: 350, y: 200 },
-        data: {
-          label: "Join",
-          joinType: "inner",
-          joinOn: [{ left: "customer_id", right: "customer_id" }],
-        },
-      },
-      {
-        id: "filter-1",
-        type: "filter",
-        position: { x: 550, y: 200 },
-        data: {
-          label: "Filter",
-          filters: [{ column: "total_amount", operator: "greater_than", value: 100 }],
-        },
-      },
-      {
-        id: "output-1",
-        type: "output",
-        position: { x: 750, y: 200 },
-        data: {
-          label: "Output Model",
-          outputName: "high_value_customers",
-          materializationType: "table",
-        },
-      },
-    ];
-
-    const newEdges: Edge[] = [
-      { id: "e1", source: "source-customers", target: "join-1" },
-      { id: "e2", source: "source-orders", target: "join-1" },
-      { id: "e3", source: "join-1", target: "filter-1" },
-      { id: "e4", source: "filter-1", target: "output-1" },
-    ];
-
-    setNodes(newNodes);
-    setEdges(newEdges);
-    setShowAICopilot(false);
-  };
-
-  const updateNodeData = useCallback((nodeId: string, data: Record<string, unknown>) => {
-    setNodes((nds) =>
-      nds.map((node) =>
-        node.id === nodeId ? { ...node, data: { ...node.data, ...data } } : node
-      )
-    );
-    if (selectedNode?.id === nodeId) {
-      setSelectedNode(prev => prev ? { ...prev, data: { ...prev.data, ...data } } : null);
-    }
-  }, [setNodes, selectedNode]);
-
-  const generatedSQL = useMemo(() => {
-    if (nodes.length === 0) return "";
-    
-    // Simple SQL generation based on nodes
-    let sql = "-- Generated DBT Model SQL\n\n";
-    
-    const sourceNodes = nodes.filter(n => n.type === "source");
-    const joinNodes = nodes.filter(n => n.type === "join");
-    const filterNodes = nodes.filter(n => n.type === "filter");
-    const outputNode = nodes.find(n => n.type === "output");
-
-    if (outputNode?.data.outputName) {
-      sql += `-- Model: ${outputNode.data.outputName}\n`;
-      sql += `{{ config(materialized='${outputNode.data.materializationType || 'table'}') }}\n\n`;
-    }
-
-    if (sourceNodes.length > 0) {
-      sourceNodes.forEach((node, index) => {
-        sql += `WITH source_${index + 1} AS (\n`;
-        sql += `  SELECT *\n`;
-        sql += `  FROM {{ ref('${node.data.schema}.${node.data.tableName}') }}\n`;
-        sql += `),\n\n`;
-      });
-    }
-
-    if (joinNodes.length > 0 && sourceNodes.length >= 2) {
-      const joinNode = joinNodes[0];
-      sql += `joined_data AS (\n`;
-      sql += `  SELECT s1.*, s2.*\n`;
-      sql += `  FROM source_1 s1\n`;
-      sql += `  ${joinNode.data.joinType?.toUpperCase() || 'INNER'} JOIN source_2 s2\n`;
-      if (joinNode.data.joinOn?.[0]) {
-        sql += `    ON s1.${joinNode.data.joinOn[0].left} = s2.${joinNode.data.joinOn[0].right}\n`;
-      }
-      sql += `),\n\n`;
-    }
-
-    if (filterNodes.length > 0) {
-      const filterNode = filterNodes[0];
-      sql += `filtered_data AS (\n`;
-      sql += `  SELECT *\n`;
-      sql += `  FROM ${joinNodes.length > 0 ? 'joined_data' : 'source_1'}\n`;
-      if (filterNode.data.filters?.[0]) {
-        const f = filterNode.data.filters[0];
-        sql += `  WHERE ${f.column} ${f.operator === 'greater_than' ? '>' : f.operator === 'less_than' ? '<' : '='} ${f.value}\n`;
-      }
-      sql += `)\n\n`;
-    }
-
-    sql += `SELECT * FROM ${filterNodes.length > 0 ? 'filtered_data' : joinNodes.length > 0 ? 'joined_data' : 'source_1'}`;
-
-    return sql;
-  }, [nodes]);
-
   return (
     <div className="flex h-screen bg-background">
       <CampaignSidebar />
@@ -287,11 +213,14 @@ const DBTBuilder = () => {
               <Button variant="ghost" size="icon" onClick={() => navigate("/people/audience-studio-dbt")}>
                 <ArrowLeft className="h-4 w-4" />
               </Button>
-              <Input
-                value={modelName}
-                onChange={(e) => setModelName(e.target.value)}
-                className="w-64 font-semibold"
-              />
+              <div>
+                <Input
+                  value={audienceName}
+                  onChange={(e) => setAudienceName(e.target.value)}
+                  placeholder="Audience name..."
+                  className="w-64 font-semibold border-0 px-0 text-lg h-8 focus-visible:ring-0"
+                />
+              </div>
             </div>
             <div className="flex items-center gap-2">
               <Button 
@@ -305,10 +234,10 @@ const DBTBuilder = () => {
               <Button 
                 variant="outline" 
                 size="sm"
-                onClick={() => setShowPreview(!showPreview)}
+                onClick={() => setShowSQL(!showSQL)}
               >
-                {showPreview ? <Code className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
-                {showPreview ? 'SQL' : 'Preview'}
+                {showSQL ? <Eye className="h-4 w-4 mr-2" /> : <Code className="h-4 w-4 mr-2" />}
+                {showSQL ? 'Preview' : 'SQL'}
               </Button>
               <Button 
                 variant="outline" 
@@ -322,7 +251,7 @@ const DBTBuilder = () => {
               <Button 
                 size="sm"
                 onClick={handleRun}
-                disabled={isRunning}
+                disabled={isRunning || !audienceName}
               >
                 {isRunning ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Play className="h-4 w-4 mr-2" />}
                 Run
@@ -332,59 +261,186 @@ const DBTBuilder = () => {
         </header>
 
         <div className="flex-1 flex overflow-hidden">
-          {/* Sources Sidebar */}
-          <DBTSourcesSidebar tables={mockWarehouseTables} />
+          {/* Main Content - Filter Builder */}
+          <div className="flex-1 overflow-auto p-6">
+            <div className="max-w-3xl mx-auto space-y-6">
+              {/* Parent Model Selection */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Parent Model</CardTitle>
+                  <CardDescription>Select the base model for this audience</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Select value={selectedParentId} onValueChange={setSelectedParentId}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select a parent model" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {parentModels.map(model => (
+                        <SelectItem key={model.id} value={model.id}>
+                          <div className="flex items-center gap-2">
+                            <Users className="w-4 h-4" />
+                            <span>{model.displayName}</span>
+                            <span className="text-muted-foreground">({model.schema}.{model.tableName})</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </CardContent>
+              </Card>
 
-          {/* Canvas */}
-          <div className="flex-1 relative">
-            <ReactFlow
-              nodes={nodes}
-              edges={edges}
-              onNodesChange={onNodesChange}
-              onEdgesChange={onEdgesChange}
-              onConnect={onConnect}
-              onNodeClick={onNodeClick}
-              onPaneClick={onPaneClick}
-              onDrop={handleDrop}
-              onDragOver={handleDragOver}
-              nodeTypes={nodeTypes}
-              fitView
-              className="bg-muted/30"
-            >
-              <Background />
-              <Controls />
-              <MiniMap className="!bg-card !border-border" />
-              
-              {nodes.length === 0 && (
-                <Panel position="top-center" className="mt-20">
-                  <div className="text-center p-8 bg-card rounded-lg border border-dashed border-border">
-                    <p className="text-muted-foreground mb-2">
-                      Drag tables from the sidebar or use AI Copilot to get started
-                    </p>
-                    <Button variant="outline" onClick={() => setShowAICopilot(true)}>
-                      <Sparkles className="h-4 w-4 mr-2" />
-                      Generate with AI
-                    </Button>
-                  </div>
-                </Panel>
-              )}
-            </ReactFlow>
+              {/* Description */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Description</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Textarea 
+                    value={audienceDescription}
+                    onChange={(e) => setAudienceDescription(e.target.value)}
+                    placeholder="Describe this audience segment..."
+                    rows={2}
+                  />
+                </CardContent>
+              </Card>
+
+              {/* Filter Groups */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold">Filters</h3>
+                  <Button variant="outline" size="sm" onClick={handleAddFilterGroup}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Group
+                  </Button>
+                </div>
+
+                {filterGroups.map((group, idx) => (
+                  <FilterGroupBuilder
+                    key={group.id}
+                    group={group}
+                    parentModel={selectedParent}
+                    showGroupLogic={idx > 0}
+                    onUpdateGroup={(updates) => handleUpdateFilterGroup(group.id, updates)}
+                    onDeleteGroup={() => handleDeleteFilterGroup(group.id)}
+                    onAddFilter={(filter) => handleAddFilter(group.id, filter)}
+                    onUpdateFilter={(filterId, updates) => handleUpdateFilter(group.id, filterId, updates)}
+                    onDeleteFilter={(filterId) => handleDeleteFilter(group.id, filterId)}
+                  />
+                ))}
+
+                {filterGroups.length === 0 && (
+                  <Card className="border-dashed">
+                    <CardContent className="flex flex-col items-center justify-center py-8">
+                      <p className="text-sm text-muted-foreground mb-4">No filters added yet</p>
+                      <Button variant="outline" onClick={handleAddFilterGroup}>
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add Filter Group
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            </div>
           </div>
 
-          {/* Right Panel */}
-          {selectedNode ? (
-            <DBTNodeProperties 
-              node={selectedNode} 
-              onUpdate={(data) => updateNodeData(selectedNode.id, data)}
-              onClose={() => setSelectedNode(null)}
-            />
-          ) : showPreview ? (
-            <DBTPreviewPanel nodes={nodes} edges={edges} sql={generatedSQL} />
-          ) : null}
+          {/* Right Panel - Preview/SQL */}
+          <aside className="w-96 border-l border-border bg-card flex flex-col">
+            <div className="p-4 border-b border-border">
+              <h3 className="font-semibold">
+                {showSQL ? 'Generated SQL' : 'Preview'}
+              </h3>
+            </div>
+
+            {showSQL ? (
+              <ScrollArea className="flex-1 p-4">
+                <pre className="text-xs bg-muted p-3 rounded-md overflow-x-auto font-mono whitespace-pre-wrap">
+                  {generatedSQL}
+                </pre>
+              </ScrollArea>
+            ) : (
+              <ScrollArea className="flex-1">
+                {/* Audience Size */}
+                <div className="p-4 border-b border-border">
+                  <div className="text-center">
+                    <p className="text-4xl font-bold">{preview.count.toLocaleString()}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {preview.percentage.toFixed(1)}% of {preview.totalInParent.toLocaleString()} total
+                    </p>
+                  </div>
+                </div>
+
+                <Tabs defaultValue="sample" className="flex-1">
+                  <TabsList className="mx-4 mt-4 w-auto">
+                    <TabsTrigger value="sample" className="text-xs">Sample</TabsTrigger>
+                    <TabsTrigger value="breakdown" className="text-xs">Breakdown</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="sample" className="p-4 pt-2">
+                    <div className="border rounded-md overflow-hidden">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            {Object.keys(preview.sampleData[0] || {}).map((key) => (
+                              <TableHead key={key} className="text-xs whitespace-nowrap py-2">
+                                {key}
+                              </TableHead>
+                            ))}
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {preview.sampleData.map((row, idx) => (
+                            <TableRow key={idx}>
+                              {Object.values(row).map((val, vidx) => (
+                                <TableCell key={vidx} className="text-xs py-1.5">
+                                  {typeof val === 'number' 
+                                    ? val.toLocaleString() 
+                                    : String(val)
+                                  }
+                                </TableCell>
+                              ))}
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2 text-center">
+                      Sample data (LIMIT 5)
+                    </p>
+                  </TabsContent>
+
+                  <TabsContent value="breakdown" className="p-4 pt-2 space-y-4">
+                    {preview.breakdowns.map((breakdown) => (
+                      <div key={breakdown.field}>
+                        <p className="text-sm font-medium mb-2 capitalize">{breakdown.field.replace('_', ' ')}</p>
+                        <div className="space-y-2">
+                          {breakdown.values.map((val) => (
+                            <div key={val.label} className="flex items-center gap-2">
+                              <div className="flex-1">
+                                <div className="flex items-center justify-between text-xs mb-1">
+                                  <span>{val.label}</span>
+                                  <span className="text-muted-foreground">{val.count.toLocaleString()} ({val.percentage}%)</span>
+                                </div>
+                                <div className="h-2 bg-muted rounded-full overflow-hidden">
+                                  <div 
+                                    className="h-full bg-primary rounded-full"
+                                    style={{ width: `${val.percentage}%` }}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </TabsContent>
+                </Tabs>
+              </ScrollArea>
+            )}
+          </aside>
         </div>
       </div>
 
-      {/* AI Copilot Dialog */}
       <DBTAICopilot 
         open={showAICopilot} 
         onOpenChange={setShowAICopilot}
