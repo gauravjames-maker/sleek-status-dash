@@ -4,7 +4,7 @@ import { CampaignSidebar } from "@/components/CampaignSidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, Plus, RotateCw, Trash2, Eye, Copy, Check } from "lucide-react";
+import { Search, Plus, RotateCw, Trash2, Eye, Copy, Check, ChevronDown, X } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -34,6 +34,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { toast } from "@/hooks/use-toast";
 
 interface APIKey {
@@ -100,6 +105,7 @@ const CampaignAPI = () => {
   const [selectedKey, setSelectedKey] = useState<APIKey | null>(null);
   const [generatedKey, setGeneratedKey] = useState("");
   const [copied, setCopied] = useState(false);
+  const [brandDropdownOpen, setBrandDropdownOpen] = useState(false);
   
   const [formData, setFormData] = useState({
     name: "",
@@ -411,21 +417,68 @@ const CampaignAPI = () => {
               <p className="text-xs text-muted-foreground">
                 Select which brands this API key can access. "Global" gives access to all brands.
               </p>
-              {availableBrands.map((brand) => (
-                <div key={brand.id} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`brand-${brand.id}`}
-                    checked={formData.brands.includes(brand.label)}
-                    onCheckedChange={() => toggleBrand(brand.label)}
-                  />
-                  <label
-                    htmlFor={`brand-${brand.id}`}
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              <Popover open={brandDropdownOpen} onOpenChange={setBrandDropdownOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={brandDropdownOpen}
+                    className="w-full justify-between"
                   >
-                    {brand.label}
-                  </label>
+                    <div className="flex flex-wrap gap-1 flex-1 text-left">
+                      {formData.brands.length > 0 ? (
+                        formData.brands.map((brand) => (
+                          <Badge key={brand} variant="secondary" className="text-xs">
+                            {brand}
+                          </Badge>
+                        ))
+                      ) : (
+                        <span className="text-muted-foreground">Select brands...</span>
+                      )}
+                    </div>
+                    <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-full min-w-[300px] p-0 bg-popover border border-border shadow-lg z-50">
+                  <div className="p-2 space-y-1">
+                    {availableBrands.map((brand) => (
+                      <div
+                        key={brand.id}
+                        className="flex items-center space-x-2 p-2 rounded-md hover:bg-accent cursor-pointer"
+                        onClick={() => toggleBrand(brand.label)}
+                      >
+                        <Checkbox
+                          id={`brand-${brand.id}`}
+                          checked={formData.brands.includes(brand.label)}
+                          onCheckedChange={() => toggleBrand(brand.label)}
+                        />
+                        <label
+                          htmlFor={`brand-${brand.id}`}
+                          className="text-sm font-medium leading-none cursor-pointer flex-1"
+                        >
+                          {brand.label}
+                        </label>
+                        {formData.brands.includes(brand.label) && (
+                          <Check className="h-4 w-4 text-primary" />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+              {formData.brands.length > 0 && !formData.brands.includes("Global") && (
+                <div className="flex flex-wrap gap-1">
+                  {formData.brands.map((brand) => (
+                    <Badge key={brand} variant="secondary" className="text-xs gap-1">
+                      {brand}
+                      <X
+                        className="h-3 w-3 cursor-pointer hover:text-destructive"
+                        onClick={() => toggleBrand(brand)}
+                      />
+                    </Badge>
+                  ))}
                 </div>
-              ))}
+              )}
             </div>
           </div>
 
