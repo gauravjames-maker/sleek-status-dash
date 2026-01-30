@@ -42,10 +42,19 @@ interface APIKey {
   description: string;
   status: "active" | "revoked";
   scopes: string[];
+  brands: string[];
   lastUsed: string;
   createdOn: string;
   key?: string;
 }
+
+const availableBrands = [
+  { id: "global", label: "Global" },
+  { id: "acme", label: "Acme Corp" },
+  { id: "techstart", label: "TechStart" },
+  { id: "greenlife", label: "GreenLife" },
+  { id: "urbanstyle", label: "UrbanStyle" },
+];
 
 const mockAPIKeys: APIKey[] = [
   {
@@ -54,6 +63,7 @@ const mockAPIKeys: APIKey[] = [
     description: "Production Airflow integration for automated campaign launches",
     status: "active",
     scopes: ["Can launch campaigns via API", "Can change campaign schedules via API"],
+    brands: ["Global"],
     lastUsed: "2025-11-26 14:23:45",
     createdOn: "2025-10-15 09:30:00",
   },
@@ -63,6 +73,7 @@ const mockAPIKeys: APIKey[] = [
     description: "Development environment testing key",
     status: "active",
     scopes: ["Can launch campaigns via API"],
+    brands: ["Acme Corp", "TechStart"],
     lastUsed: "2025-11-25 16:10:22",
     createdOn: "2025-11-01 11:00:00",
   },
@@ -72,6 +83,7 @@ const mockAPIKeys: APIKey[] = [
     description: "Old integration - to be removed",
     status: "revoked",
     scopes: ["Can launch campaigns via API", "Can change campaign schedules via API"],
+    brands: ["GreenLife"],
     lastUsed: "2025-09-15 08:45:12",
     createdOn: "2025-01-10 14:20:00",
   },
@@ -93,6 +105,7 @@ const CampaignAPI = () => {
     name: "",
     description: "",
     scopes: [] as string[],
+    brands: ["Global"] as string[],
   });
 
   const scopeOptions = [
@@ -122,6 +135,7 @@ const CampaignAPI = () => {
       description: formData.description,
       status: "active",
       scopes: formData.scopes,
+      brands: formData.brands.length > 0 ? formData.brands : ["Global"],
       lastUsed: "Never",
       createdOn: new Date().toLocaleString("en-US", {
         year: "numeric",
@@ -138,7 +152,7 @@ const CampaignAPI = () => {
     setApiKeys([...apiKeys, newKey]);
     setCreateDialogOpen(false);
     setNewKeyDialogOpen(true);
-    setFormData({ name: "", description: "", scopes: [] });
+    setFormData({ name: "", description: "", scopes: [], brands: ["Global"] });
   };
 
   const handleRevokeKey = () => {
@@ -187,6 +201,28 @@ const CampaignAPI = () => {
     }));
   };
 
+  const toggleBrand = (brandLabel: string) => {
+    setFormData((prev) => {
+      const isGlobal = brandLabel === "Global";
+      const currentHasGlobal = prev.brands.includes("Global");
+      
+      if (isGlobal) {
+        // If selecting Global, clear other selections
+        return { ...prev, brands: currentHasGlobal ? [] : ["Global"] };
+      } else {
+        // If selecting a specific brand, remove Global
+        let newBrands = prev.brands.filter((b) => b !== "Global");
+        if (newBrands.includes(brandLabel)) {
+          newBrands = newBrands.filter((b) => b !== brandLabel);
+        } else {
+          newBrands = [...newBrands, brandLabel];
+        }
+        // If no brands selected, default back to Global
+        return { ...prev, brands: newBrands.length > 0 ? newBrands : ["Global"] };
+      }
+    });
+  };
+
   return (
     <div className="flex min-h-screen bg-background">
       <CampaignSidebar />
@@ -233,6 +269,7 @@ const CampaignAPI = () => {
                   <TableHead>Key Name</TableHead>
                   <TableHead>Description</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Brands</TableHead>
                   <TableHead>Scopes</TableHead>
                   <TableHead>Last Used</TableHead>
                   <TableHead>Created On</TableHead>
@@ -250,6 +287,15 @@ const CampaignAPI = () => {
                       <Badge variant={key.status === "active" ? "default" : "secondary"}>
                         {key.status === "active" ? "Active" : "Revoked"}
                       </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        {key.brands.map((brand, idx) => (
+                          <Badge key={idx} variant="outline" className="text-xs">
+                            {brand}
+                          </Badge>
+                        ))}
+                      </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-col gap-1">
@@ -355,6 +401,28 @@ const CampaignAPI = () => {
                     className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                   >
                     {scope.label}
+                  </label>
+                </div>
+              ))}
+            </div>
+
+            <div className="space-y-3">
+              <Label>Brand Association</Label>
+              <p className="text-xs text-muted-foreground">
+                Select which brands this API key can access. "Global" gives access to all brands.
+              </p>
+              {availableBrands.map((brand) => (
+                <div key={brand.id} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`brand-${brand.id}`}
+                    checked={formData.brands.includes(brand.label)}
+                    onCheckedChange={() => toggleBrand(brand.label)}
+                  />
+                  <label
+                    htmlFor={`brand-${brand.id}`}
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    {brand.label}
                   </label>
                 </div>
               ))}
