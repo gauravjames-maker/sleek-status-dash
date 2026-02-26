@@ -50,8 +50,8 @@ import {
 } from "@/components/ui/collapsible";
 import { CampaignSidebar } from "@/components/CampaignSidebar";
 import { useToast } from "@/hooks/use-toast";
-import GPTTokenDialog from "@/components/GPTTokenDialog";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -325,7 +325,7 @@ const AudienceCreate = () => {
   const [sqlQuery, setSqlQuery] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [previewData, setPreviewData] = useState<any[]>([]);
-  const [showTokenDialog, setShowTokenDialog] = useState(false);
+  
   const [openDatabaseCombo, setOpenDatabaseCombo] = useState(false);
   const [openTableCombo, setOpenTableCombo] = useState(false);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
@@ -424,13 +424,6 @@ const AudienceCreate = () => {
   };
 
   const generateSQLFromNaturalLanguage = async () => {
-    const token = sessionStorage.getItem("gpt_token");
-    
-    if (!token) {
-      setShowTokenDialog(true);
-      return;
-    }
-
     if (selectedTables.length === 0 || !naturalLanguageQuery) {
       toast({
         title: "Missing Information",
@@ -459,51 +452,26 @@ const AudienceCreate = () => {
       : `in the ${timeRangeOptions.find(t => t.value === timeRange)?.label.toLowerCase()}`;
 
     try {
-      const response = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
+      const { data, error } = await supabase.functions.invoke("generate-sql", {
+        body: {
+          tables: selectedTables,
+          relationships: relationships.map(r => ({
+            leftTable: r.leftTable,
+            leftColumn: r.leftColumn,
+            rightTable: r.rightTable,
+            rightColumn: r.rightColumn,
+            joinType: r.joinType,
+          })),
+          naturalLanguageQuery,
+          timeConstraint,
+          resultLimit,
         },
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          messages: [
-            {
-              role: "system",
-              content: `You are a SQL expert. Convert natural language queries to SQL. The available tables are: ${selectedTables.join(", ")}. 
-${relationships.length > 0 ? `Configured relationships:\n${relationships.map(r => `${r.leftTable}.${r.leftColumn} ${r.joinType} JOIN ${r.rightTable}.${r.rightColumn}`).join('\n')}` : ''}
-
-IMPORTANT CONSTRAINTS:
-1. Always include a date filter using the time range: ${timeConstraint}
-2. Always add LIMIT ${resultLimit} at the end of the query
-3. Use optimized tables when possible (customer_metrics for aggregations)
-4. Avoid raw log tables
-5. Use the configured relationships for JOINs when available
-
-Only return the SQL query, nothing else.`,
-            },
-            {
-              role: "user",
-              content: `${naturalLanguageQuery}\n\nTime range: ${timeConstraint}\nResult limit: ${resultLimit}`,
-            },
-          ],
-          temperature: 0.3,
-        }),
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to generate SQL");
-      }
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
-      const data = await response.json();
-      const generatedSQL = data.choices[0].message.content.trim();
-      
-      // Clean up the SQL (remove markdown code blocks if present)
-      const cleanSQL = generatedSQL
-        .replace(/```sql\n?/g, "")
-        .replace(/```\n?/g, "")
-        .trim();
-      
+      const cleanSQL = data.sql;
       setSqlQuery(cleanSQL);
       
       // Analyze query safety
@@ -536,7 +504,7 @@ Only return the SQL query, nothing else.`,
       console.error("Error generating SQL:", error);
       toast({
         title: "Generation Failed",
-        description: "Failed to generate SQL query. Please check your token and try again.",
+        description: "Failed to generate SQL query. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -1646,7 +1614,7 @@ Only return the SQL query, nothing else.`,
         </main>
       </div>
 
-      <GPTTokenDialog open={showTokenDialog} onOpenChange={setShowTokenDialog} />
+      
 
       {/* How It Works Dialog */}
       <Dialog open={showInfoDialog} onOpenChange={setShowInfoDialog}>
