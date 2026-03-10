@@ -21,6 +21,7 @@ import AudienceStudioDBT from "./pages/AudienceStudioDBT";
 import DBTBuilder from "./pages/DBTBuilder";
 import CampaignAPI from "./pages/CampaignAPI";
 import CampaignAPIDetail from "./pages/CampaignAPIDetail";
+import AnalyticsJobList from "./pages/AnalyticsJobList";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -50,6 +51,7 @@ const App = () => (
           <Route path="/content/templates/:id" element={<TemplateDetail />} />
           <Route path="/admin/campaign-api" element={<CampaignAPI />} />
           <Route path="/admin/campaign-api/:id" element={<CampaignAPIDetail />} />
+          <Route path="/analytics/job" element={<AnalyticsJobList />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

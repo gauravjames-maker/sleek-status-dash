@@ -70,8 +70,13 @@ const navItems: SidebarNavItem[] = [
     label: "Analytics",
     icon: <BarChart3 className="w-5 h-5" />,
     expandable: true,
-    href: "/analytics",
     iconColor: "text-[#F59E0B]",
+    children: [
+      { label: "Account", href: "/analytics/account", icon: null },
+      { label: "Marketing campaigns", href: "/analytics/marketing-campaigns", icon: null },
+      { label: "Experiment campaigns", href: "/analytics/experiment-campaigns", icon: null },
+      { label: "Job", href: "/analytics/job", icon: null },
+    ],
   },
   {
     label: "Admin",
