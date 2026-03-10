@@ -107,6 +107,7 @@ const mockJobs: Job[] = [
     deliveries: 0,
     opens: 0, opensPercent: 0,
     adjustedOpens: 0, adjustedOpensPercent: 0,
+    botOpens: 0, botOpensPercent: 0,
     engagements: 0, engagementsPercent: 0,
     bounces: 0, bouncesPercent: 0,
     suppressed: 0, suppressedPercent: 0,
