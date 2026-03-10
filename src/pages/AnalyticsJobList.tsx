@@ -25,6 +25,8 @@ interface Job {
   opensPercent: number;
   adjustedOpens: number;
   adjustedOpensPercent: number;
+  botOpens: number;
+  botOpensPercent: number;
   engagements: number;
   engagementsPercent: number;
   bounces: number;
@@ -45,6 +47,7 @@ const mockJobs: Job[] = [
     deliveries: 0,
     opens: 0, opensPercent: 0,
     adjustedOpens: 0, adjustedOpensPercent: 0,
+    botOpens: 0, botOpensPercent: 0,
     engagements: 0, engagementsPercent: 0,
     bounces: 0, bouncesPercent: 0,
     suppressed: 0, suppressedPercent: 0,
@@ -59,6 +62,7 @@ const mockJobs: Job[] = [
     deliveries: 0,
     opens: 0, opensPercent: 0,
     adjustedOpens: 0, adjustedOpensPercent: 0,
+    botOpens: 0, botOpensPercent: 0,
     engagements: 0, engagementsPercent: 0,
     bounces: 0, bouncesPercent: 0,
     suppressed: 0, suppressedPercent: 0,
@@ -73,6 +77,7 @@ const mockJobs: Job[] = [
     deliveries: 0,
     opens: 0, opensPercent: 0,
     adjustedOpens: 0, adjustedOpensPercent: 0,
+    botOpens: 0, botOpensPercent: 0,
     engagements: 0, engagementsPercent: 0,
     bounces: 0, bouncesPercent: 0,
     suppressed: 0, suppressedPercent: 0,
@@ -87,6 +92,7 @@ const mockJobs: Job[] = [
     deliveries: 0,
     opens: 0, opensPercent: 0,
     adjustedOpens: 0, adjustedOpensPercent: 0,
+    botOpens: 0, botOpensPercent: 0,
     engagements: 0, engagementsPercent: 0,
     bounces: 0, bouncesPercent: 0,
     suppressed: 0, suppressedPercent: 0,
@@ -101,6 +107,7 @@ const mockJobs: Job[] = [
     deliveries: 0,
     opens: 0, opensPercent: 0,
     adjustedOpens: 0, adjustedOpensPercent: 0,
+    botOpens: 0, botOpensPercent: 0,
     engagements: 0, engagementsPercent: 0,
     bounces: 0, bouncesPercent: 0,
     suppressed: 0, suppressedPercent: 0,
@@ -115,6 +122,7 @@ const mockJobs: Job[] = [
     deliveries: 0,
     opens: 0, opensPercent: 0,
     adjustedOpens: 0, adjustedOpensPercent: 0,
+    botOpens: 0, botOpensPercent: 0,
     engagements: 0, engagementsPercent: 0,
     bounces: 0, bouncesPercent: 0,
     suppressed: 0, suppressedPercent: 0,
@@ -129,6 +137,7 @@ const mockJobs: Job[] = [
     deliveries: 0,
     opens: 0, opensPercent: 0,
     adjustedOpens: 0, adjustedOpensPercent: 0,
+    botOpens: 0, botOpensPercent: 0,
     engagements: 0, engagementsPercent: 0,
     bounces: 0, bouncesPercent: 0,
     suppressed: 0, suppressedPercent: 0,
@@ -143,6 +152,7 @@ const mockJobs: Job[] = [
     deliveries: 0,
     opens: 0, opensPercent: 0,
     adjustedOpens: 0, adjustedOpensPercent: 0,
+    botOpens: 0, botOpensPercent: 0,
     engagements: 0, engagementsPercent: 0,
     bounces: 0, bouncesPercent: 0,
     suppressed: 0, suppressedPercent: 0,
@@ -157,6 +167,7 @@ const mockJobs: Job[] = [
     deliveries: 0,
     opens: 0, opensPercent: 0,
     adjustedOpens: 0, adjustedOpensPercent: 0,
+    botOpens: 0, botOpensPercent: 0,
     engagements: 0, engagementsPercent: 0,
     bounces: 0, bouncesPercent: 0,
     suppressed: 0, suppressedPercent: 0,
@@ -171,6 +182,7 @@ const mockJobs: Job[] = [
     deliveries: 0,
     opens: 0, opensPercent: 0,
     adjustedOpens: 0, adjustedOpensPercent: 0,
+    botOpens: 0, botOpensPercent: 0,
     engagements: 0, engagementsPercent: 0,
     bounces: 0, bouncesPercent: 0,
     suppressed: 0, suppressedPercent: 0,
@@ -244,6 +256,7 @@ const AnalyticsJobList = () => {
                 <TableHead className="font-semibold text-foreground text-center">Deliveries</TableHead>
                 <TableHead className="font-semibold text-foreground text-center">Opens</TableHead>
                 <TableHead className="font-semibold text-foreground text-center">Apple Filtered Opens</TableHead>
+                <TableHead className="font-semibold text-foreground text-center">Bot Opens</TableHead>
                 <TableHead className="font-semibold text-foreground text-center">Engagements</TableHead>
                 <TableHead className="font-semibold text-foreground text-center">Bounces</TableHead>
                 <TableHead className="font-semibold text-foreground text-center">Suppressed</TableHead>
@@ -271,6 +284,9 @@ const AnalyticsJobList = () => {
                     </TableCell>
                     <TableCell className="text-center text-muted-foreground">
                       {formatMetric(job.adjustedOpens, job.adjustedOpensPercent)}
+                    </TableCell>
+                    <TableCell className="text-center text-muted-foreground">
+                      {formatMetric(job.botOpens, job.botOpensPercent)}
                     </TableCell>
                     <TableCell className="text-center text-muted-foreground">
                       {formatMetric(job.engagements, job.engagementsPercent)}
