@@ -21,6 +21,7 @@ import AudienceStudioDBT from "./pages/AudienceStudioDBT";
 import DBTBuilder from "./pages/DBTBuilder";
 import CampaignAPI from "./pages/CampaignAPI";
 import CampaignAPIDetail from "./pages/CampaignAPIDetail";
+import AnalyticsJobList from "./pages/AnalyticsJobList";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
