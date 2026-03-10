@@ -243,7 +243,7 @@ const AnalyticsJobList = () => {
                 <TableHead className="font-semibold text-foreground text-right">Job Size</TableHead>
                 <TableHead className="font-semibold text-foreground text-center">Deliveries</TableHead>
                 <TableHead className="font-semibold text-foreground text-center">Opens</TableHead>
-                <TableHead className="font-semibold text-foreground text-center">Adjusted Opens</TableHead>
+                <TableHead className="font-semibold text-foreground text-center">Apple Filtered Opens</TableHead>
                 <TableHead className="font-semibold text-foreground text-center">Engagements</TableHead>
                 <TableHead className="font-semibold text-foreground text-center">Bounces</TableHead>
                 <TableHead className="font-semibold text-foreground text-center">Suppressed</TableHead>
