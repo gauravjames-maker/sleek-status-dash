@@ -25,6 +25,8 @@ interface Job {
   opensPercent: number;
   adjustedOpens: number;
   adjustedOpensPercent: number;
+  botOpens: number;
+  botOpensPercent: number;
   engagements: number;
   engagementsPercent: number;
   bounces: number;
