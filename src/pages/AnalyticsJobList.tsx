@@ -276,7 +276,11 @@ const AnalyticsJobList = () => {
                       {formatMetric(job.adjustedOpens, job.adjustedOpensPercent)}
                     </TableCell>
                     <TableCell className="text-center text-muted-foreground">
+                      {formatMetric(job.botOpens, job.botOpensPercent)}
+                    </TableCell>
+                    <TableCell className="text-center text-muted-foreground">
                       {formatMetric(job.engagements, job.engagementsPercent)}
+                    </TableCell>
                     </TableCell>
                     <TableCell className="text-center text-muted-foreground">
                       {formatMetric(job.bounces, job.bouncesPercent)}
