@@ -51,6 +51,7 @@ const App = () => (
           <Route path="/content/templates/:id" element={<TemplateDetail />} />
           <Route path="/admin/campaign-api" element={<CampaignAPI />} />
           <Route path="/admin/campaign-api/:id" element={<CampaignAPIDetail />} />
+          <Route path="/analytics/job" element={<AnalyticsJobList />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
