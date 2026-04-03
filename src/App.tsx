@@ -44,6 +44,7 @@ const App = () => (
           <Route path="/people/blueprints/builder/:id" element={<BlueprintBuilder />} />
           <Route path="/people/audience" element={<Audience />} />
           <Route path="/people/audience/create" element={<AudienceCreate />} />
+          <Route path="/people/audience-mg" element={<AudienceMG />} />
           <Route path="/people/audience-studio" element={<AudienceStudio />} />
           <Route path="/people/audience-studio/builder" element={<AudienceBuilder />} />
           <Route path="/people/audience-studio-dbt" element={<AudienceStudioDBT />} />
