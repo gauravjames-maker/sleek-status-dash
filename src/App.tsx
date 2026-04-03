@@ -18,6 +18,7 @@ import AudienceCreate from "./pages/AudienceCreate";
 import AudienceStudio from "./pages/AudienceStudio";
 import AudienceBuilder from "./pages/AudienceBuilder";
 import AudienceStudioDBT from "./pages/AudienceStudioDBT";
+import AudienceMG from "./pages/AudienceMG";
 import DBTBuilder from "./pages/DBTBuilder";
 import CampaignAPI from "./pages/CampaignAPI";
 import CampaignAPIDetail from "./pages/CampaignAPIDetail";
