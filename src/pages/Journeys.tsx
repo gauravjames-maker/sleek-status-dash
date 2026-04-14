@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { Send } from "lucide-react";
 
 interface Journey {
@@ -39,6 +40,7 @@ const statusDots: Record<Journey["status"], string> = {
 };
 
 const Journeys = () => {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [showArchived, setShowArchived] = useState(false);
   const [sortField, setSortField] = useState<"name" | "status" | null>(null);
@@ -137,7 +139,10 @@ const Journeys = () => {
                 {filtered.map((journey) => (
                   <TableRow key={journey.id}>
                     <TableCell>
-                      <span className="text-primary font-medium cursor-pointer hover:underline">
+                      <span
+                        className="text-primary font-medium cursor-pointer hover:underline"
+                        onClick={() => navigate(`/campaigns/journeys/${journey.id}`)}
+                      >
                         {journey.name}
                       </span>
                     </TableCell>
