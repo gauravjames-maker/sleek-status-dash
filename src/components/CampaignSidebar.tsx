@@ -60,6 +60,7 @@ const navItems: SidebarNavItem[] = [
     expandable: true,
     iconColor: "text-[#3B82F6]",
     children: [
+      { label: "Journeys", href: "/campaigns/journeys", icon: null },
       { label: "Marketing", href: "/campaigns/marketing", icon: null },
       { label: "Experiments", href: "/campaigns/experiments", icon: null },
       { label: "Transactional", href: "/campaigns/transactional", icon: null },
