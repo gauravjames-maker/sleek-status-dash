@@ -302,10 +302,38 @@ interface FlowNodeProps {
   details?: { label: string; value: string; isLink?: boolean }[];
   metrics?: { label: string; value: string; pct?: string }[];
   hasRecipientPreference?: boolean;
+  cloudSynced?: boolean;
 }
 
-const FlowNode = ({ type, title, subtitle, color, details, metrics, hasRecipientPreference }: FlowNodeProps) => (
-  <div className="bg-card border border-border rounded-xl shadow-sm w-[280px] overflow-hidden">
+const FlowNode = ({ type, title, subtitle, color, details, metrics, hasRecipientPreference, cloudSynced }: FlowNodeProps) => (
+  <div className={`bg-card border rounded-xl shadow-sm w-[280px] overflow-hidden relative ${cloudSynced ? "border-primary/30 ring-1 ring-primary/10" : "border-border"}`}>
+    {/* Cloud synced badge */}
+    {cloudSynced && (
+      <div className="absolute -top-2.5 -right-2.5 z-10">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="flex items-center gap-1 bg-primary/10 border border-primary/20 rounded-full pl-1.5 pr-2.5 py-0.5 cursor-default shadow-sm">
+              <div className="relative">
+                <Cloud className="w-3.5 h-3.5 text-primary" />
+                <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+              </div>
+              <span className="text-[9px] font-semibold text-primary">Cloud</span>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent side="top" className="max-w-[200px]">
+            <div className="space-y-1">
+              <p className="font-semibold text-xs">Cloud-synced data</p>
+              <p className="text-[11px] text-muted-foreground">This node's data is fetched live from Lovable Cloud and stays in sync automatically.</p>
+              <div className="flex items-center gap-1 text-[10px] text-green-600 pt-0.5">
+                <RefreshCw className="w-2.5 h-2.5" />
+                <span>Live • Last synced just now</span>
+              </div>
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      </div>
+    )}
+
     {/* Header */}
     <div className="px-4 py-2.5 flex items-center gap-2.5">
       <div className={`w-7 h-7 rounded-lg ${color} flex items-center justify-center`}>
@@ -314,7 +342,7 @@ const FlowNode = ({ type, title, subtitle, color, details, metrics, hasRecipient
         {type === "channel" && <span className="text-white text-xs">📧</span>}
         {type === "split" && <span className="text-white text-xs">🔀</span>}
       </div>
-      <div>
+      <div className="flex-1">
         <p className="text-[10px] text-muted-foreground leading-tight">{subtitle}</p>
         <p className="text-sm font-semibold leading-tight">{title}</p>
       </div>
