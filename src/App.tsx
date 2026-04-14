@@ -24,6 +24,7 @@ import CampaignAPI from "./pages/CampaignAPI";
 import CampaignAPIDetail from "./pages/CampaignAPIDetail";
 import AnalyticsJobList from "./pages/AnalyticsJobList";
 import Journeys from "./pages/Journeys";
+import JourneyDetail from "./pages/JourneyDetail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,6 +39,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/campaigns" element={<Campaigns />} />
           <Route path="/campaigns/journeys" element={<Journeys />} />
+          <Route path="/campaigns/journeys/:id" element={<JourneyDetail />} />
           <Route path="/campaigns/marketing" element={<MarketingCampaigns />} />
           <Route path="/campaigns/marketing/overview/:id" element={<CampaignDetail />} />
           <Route path="/people/blueprints" element={<Blueprints />} />
