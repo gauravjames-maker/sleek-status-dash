@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Pencil, Info, SlidersHorizontal, ArrowDownRight, ArrowUpRight, Undo2, Redo2, ZoomIn, ZoomOut, Search } from "lucide-react";
+import { Pencil, Info, SlidersHorizontal, ArrowDownRight, ArrowUpRight, Undo2, Redo2, ZoomIn, ZoomOut, Search, Cloud, RefreshCw } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useState } from "react";
 
 // Mini icon sidebar (left)
@@ -197,6 +198,7 @@ const JourneyDetail = () => {
                   title="Entry"
                   subtitle="Set entry criteria"
                   color="bg-green-500"
+                  cloudSynced
                   details={[
                     { label: "Audience", value: "New Customers Fall 2025", isLink: true },
                     { label: "User profile", value: "User profile" },
@@ -212,6 +214,7 @@ const JourneyDetail = () => {
                   title="Wait 15 minutes"
                   subtitle="Time delay"
                   color="bg-yellow-500"
+                  cloudSynced
                   metrics={[
                     { label: "Entered", value: "96,500" },
                     { label: "In progress", value: "100" },
@@ -225,6 +228,7 @@ const JourneyDetail = () => {
                   title="General offer"
                   subtitle="Multi channel"
                   color="bg-yellow-500"
+                  cloudSynced
                   hasRecipientPreference
                   metrics={[
                     { label: "Entrants", value: "25,815" },
