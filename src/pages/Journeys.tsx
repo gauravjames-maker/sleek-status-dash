@@ -40,6 +40,7 @@ const statusDots: Record<Journey["status"], string> = {
 };
 
 const Journeys = () => {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [showArchived, setShowArchived] = useState(false);
   const [sortField, setSortField] = useState<"name" | "status" | null>(null);
