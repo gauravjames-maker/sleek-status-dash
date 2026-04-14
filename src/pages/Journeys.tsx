@@ -139,7 +139,10 @@ const Journeys = () => {
                 {filtered.map((journey) => (
                   <TableRow key={journey.id}>
                     <TableCell>
-                      <span className="text-primary font-medium cursor-pointer hover:underline">
+                      <span
+                        className="text-primary font-medium cursor-pointer hover:underline"
+                        onClick={() => navigate(`/campaigns/journeys/${journey.id}`)}
+                      >
                         {journey.name}
                       </span>
                     </TableCell>
