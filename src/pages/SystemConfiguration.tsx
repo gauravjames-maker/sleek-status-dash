@@ -25,6 +25,8 @@ interface ConfigItem {
 interface JobItem {
   id: string;
   name: string;
+  campaignType: "Marketing" | "Transactional" | "Experiments" | "External";
+  campaignName: string;
   owner: string;
   progress: string;
   decision: "Allowed to complete" | "Overridden and paused";
@@ -53,6 +55,8 @@ const runningJobs: JobItem[] = [
   {
     id: "JOB-8421",
     name: "Spring sale audience refresh",
+    campaignType: "Marketing",
+    campaignName: "Spring Sale 2026",
     owner: "Marketing Ops",
     progress: "72% complete",
     decision: "Allowed to complete",
@@ -61,6 +65,8 @@ const runningJobs: JobItem[] = [
   {
     id: "JOB-8425",
     name: "Daily campaign engagement rollup",
+    campaignType: "Transactional",
+    campaignName: "Order Confirmation Series",
     owner: "Analytics",
     progress: "41% complete",
     decision: "Allowed to complete",
@@ -69,6 +75,8 @@ const runningJobs: JobItem[] = [
   {
     id: "JOB-8430",
     name: "Journey eligibility sync",
+    campaignType: "Experiments",
+    campaignName: "Offer Timing A/B Test",
     owner: "Journeys",
     progress: "18% complete",
     decision: "Allowed to complete",
