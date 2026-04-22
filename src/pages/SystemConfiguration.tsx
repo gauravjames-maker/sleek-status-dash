@@ -208,7 +208,7 @@ const SystemConfiguration = () => {
                 )}
               >
                 <span>{item.label}</span>
-                {typeof item.enabled === "boolean" && (
+                {item.label !== "Maintenance mode" && typeof item.enabled === "boolean" && (
                   <Switch
                     checked={item.enabled}
                     onCheckedChange={() => toggleItem(item.label)}
