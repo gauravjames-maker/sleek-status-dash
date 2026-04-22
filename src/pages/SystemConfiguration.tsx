@@ -166,10 +166,12 @@ const SystemConfiguration = () => {
   };
 
   const downloadJobsCsv = () => {
-    const header = ["Job ID", "Job Name", "Owner", "Status", "Progress", "Maintenance Decision"];
+    const header = ["Job ID", "Job Name", "Campaign Type", "Campaign Name", "Owner", "Status", "Progress", "Maintenance Decision"];
     const rows = jobs.map((job) => [
       job.id,
       job.name,
+      job.campaignType,
+      job.campaignName,
       job.owner,
       job.status,
       job.progress,
@@ -310,7 +312,7 @@ const SystemConfiguration = () => {
                               <span className="min-w-0 flex-1">
                                 <span className="block font-semibold">{job.name}</span>
                                 <span className="block text-xs text-muted-foreground">
-                                  {job.id} • {job.owner} • {job.progress}
+                                  {job.id} • {job.campaignType}: {job.campaignName} • {job.progress}
                                 </span>
                               </span>
                             </label>
@@ -359,6 +361,7 @@ const SystemConfiguration = () => {
                       <thead className="bg-secondary text-muted-foreground">
                         <tr>
                           <th className="px-5 py-3 font-semibold">Job</th>
+                          <th className="px-5 py-3 font-semibold">Campaign</th>
                           <th className="px-5 py-3 font-semibold">Owner</th>
                           <th className="px-5 py-3 font-semibold">Progress</th>
                           <th className="px-5 py-3 font-semibold">Decision</th>
@@ -372,6 +375,10 @@ const SystemConfiguration = () => {
                             <td className="px-5 py-4">
                               <div className="font-semibold">{job.name}</div>
                               <div className="text-xs text-muted-foreground">{job.id}</div>
+                            </td>
+                            <td className="px-5 py-4">
+                              <div className="font-semibold">{job.campaignType}</div>
+                              <div className="text-xs text-muted-foreground">{job.campaignName}</div>
                             </td>
                             <td className="px-5 py-4">{job.owner}</td>
                             <td className="px-5 py-4">{job.progress}</td>
