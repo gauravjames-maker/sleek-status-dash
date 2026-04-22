@@ -180,6 +180,21 @@ const SystemConfiguration = () => {
     );
   };
 
+  const relaunchAllPausedJobs = () => {
+    setJobs((current) =>
+      current.map((job) =>
+        job.status === "Paused"
+          ? {
+              ...job,
+              status: "Processing",
+              progress: "Queued for relaunch",
+              decision: "Allowed to complete",
+            }
+          : job
+      )
+    );
+  };
+
   const downloadJobsCsv = () => {
     const header = ["Job ID", "Start Time", "Campaign Name", "Campaign Type", "Owner", "Status", "Progress", "Maintenance Decision"];
     const rows = jobs.map((job) => [
@@ -371,6 +386,9 @@ const SystemConfiguration = () => {
                         <p className="mt-1 text-sm text-muted-foreground">
                           Maintenance mode is off. Relaunch any jobs that were overridden and paused.
                         </p>
+                        <Button className="mt-4" onClick={relaunchAllPausedJobs}>
+                          <PlayCircle className="h-4 w-4" /> Resume all paused jobs
+                        </Button>
                       </div>
                     </div>
                   </div>
