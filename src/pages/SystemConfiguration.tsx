@@ -25,6 +25,8 @@ interface ConfigItem {
 interface JobItem {
   id: string;
   name: string;
+  campaignType: "Marketing" | "Transactional" | "Experiments" | "External";
+  campaignName: string;
   owner: string;
   progress: string;
   decision: "Allowed to complete" | "Overridden and paused";
@@ -53,6 +55,8 @@ const runningJobs: JobItem[] = [
   {
     id: "JOB-8421",
     name: "Spring sale audience refresh",
+    campaignType: "Marketing",
+    campaignName: "Spring Sale 2026",
     owner: "Marketing Ops",
     progress: "72% complete",
     decision: "Allowed to complete",
@@ -61,6 +65,8 @@ const runningJobs: JobItem[] = [
   {
     id: "JOB-8425",
     name: "Daily campaign engagement rollup",
+    campaignType: "Transactional",
+    campaignName: "Order Confirmation Series",
     owner: "Analytics",
     progress: "41% complete",
     decision: "Allowed to complete",
@@ -69,6 +75,8 @@ const runningJobs: JobItem[] = [
   {
     id: "JOB-8430",
     name: "Journey eligibility sync",
+    campaignType: "Experiments",
+    campaignName: "Offer Timing A/B Test",
     owner: "Journeys",
     progress: "18% complete",
     decision: "Allowed to complete",
@@ -158,10 +166,12 @@ const SystemConfiguration = () => {
   };
 
   const downloadJobsCsv = () => {
-    const header = ["Job ID", "Job Name", "Owner", "Status", "Progress", "Maintenance Decision"];
+    const header = ["Job ID", "Job Name", "Campaign Type", "Campaign Name", "Owner", "Status", "Progress", "Maintenance Decision"];
     const rows = jobs.map((job) => [
       job.id,
       job.name,
+      job.campaignType,
+      job.campaignName,
       job.owner,
       job.status,
       job.progress,
@@ -302,7 +312,7 @@ const SystemConfiguration = () => {
                               <span className="min-w-0 flex-1">
                                 <span className="block font-semibold">{job.name}</span>
                                 <span className="block text-xs text-muted-foreground">
-                                  {job.id} • {job.owner} • {job.progress}
+                                  {job.id} • {job.campaignType}: {job.campaignName} • {job.progress}
                                 </span>
                               </span>
                             </label>
@@ -351,6 +361,7 @@ const SystemConfiguration = () => {
                       <thead className="bg-secondary text-muted-foreground">
                         <tr>
                           <th className="px-5 py-3 font-semibold">Job</th>
+                          <th className="px-5 py-3 font-semibold">Campaign</th>
                           <th className="px-5 py-3 font-semibold">Owner</th>
                           <th className="px-5 py-3 font-semibold">Progress</th>
                           <th className="px-5 py-3 font-semibold">Decision</th>
@@ -364,6 +375,10 @@ const SystemConfiguration = () => {
                             <td className="px-5 py-4">
                               <div className="font-semibold">{job.name}</div>
                               <div className="text-xs text-muted-foreground">{job.id}</div>
+                            </td>
+                            <td className="px-5 py-4">
+                              <div className="font-semibold">{job.campaignType}</div>
+                              <div className="text-xs text-muted-foreground">{job.campaignName}</div>
                             </td>
                             <td className="px-5 py-4">{job.owner}</td>
                             <td className="px-5 py-4">{job.progress}</td>
