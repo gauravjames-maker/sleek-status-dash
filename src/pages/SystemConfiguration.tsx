@@ -25,6 +25,7 @@ interface ConfigItem {
 interface JobItem {
   id: string;
   name: string;
+  startTime: string;
   campaignType: "Marketing" | "Transactional" | "Experiments" | "External";
   campaignName: string;
   owner: string;
@@ -55,6 +56,7 @@ const runningJobs: JobItem[] = [
   {
     id: "JOB-8421",
     name: "Spring sale audience refresh",
+    startTime: "Apr 22, 2026 1:18 PM",
     campaignType: "Marketing",
     campaignName: "Spring Sale 2026",
     owner: "Marketing Ops",
@@ -65,6 +67,7 @@ const runningJobs: JobItem[] = [
   {
     id: "JOB-8425",
     name: "Daily campaign engagement rollup",
+    startTime: "Apr 22, 2026 1:34 PM",
     campaignType: "Transactional",
     campaignName: "Order Confirmation Series",
     owner: "Analytics",
@@ -75,6 +78,7 @@ const runningJobs: JobItem[] = [
   {
     id: "JOB-8430",
     name: "Journey eligibility sync",
+    startTime: "Apr 22, 2026 1:47 PM",
     campaignType: "Experiments",
     campaignName: "Offer Timing A/B Test",
     owner: "Journeys",
