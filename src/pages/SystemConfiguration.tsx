@@ -288,35 +288,51 @@ const SystemConfiguration = () => {
                         <p className="mt-1 text-sm text-muted-foreground">
                           Select the running jobs you want to override and pause now. Unselected jobs will finish first, and we will notify {notificationEmail} when maintenance mode becomes active.
                         </p>
-                        <div className="mt-4 overflow-hidden border border-border bg-card">
-                          <label className="flex cursor-pointer items-center gap-3 border-b border-border bg-secondary px-4 py-3 text-sm font-semibold">
-                            <input
-                              type="checkbox"
-                              checked={allProcessingSelected}
-                              onChange={toggleAllJobs}
-                              className="h-4 w-4 accent-primary"
-                            />
-                            Select all running jobs
-                          </label>
-                          {processingJobs.map((job) => (
-                            <label
-                              key={job.id}
-                              className="flex cursor-pointer items-center gap-3 border-b border-border px-4 py-3 last:border-b-0"
-                            >
-                              <input
-                                type="checkbox"
-                                checked={selectedJobIds.includes(job.id)}
-                                onChange={() => toggleJobSelection(job.id)}
-                                className="h-4 w-4 accent-primary"
-                              />
-                              <span className="min-w-0 flex-1">
-                                <span className="block font-semibold">{job.name}</span>
-                                <span className="block text-xs text-muted-foreground">
-                                  {job.id} • {job.campaignType}: {job.campaignName} • {job.progress}
-                                </span>
-                              </span>
-                            </label>
-                          ))}
+                        <div className="mt-4 overflow-x-auto border border-border bg-card">
+                          <table className="w-full text-left text-sm">
+                            <thead className="bg-secondary text-muted-foreground">
+                              <tr>
+                                <th className="w-12 px-4 py-3">
+                                  <input
+                                    type="checkbox"
+                                    checked={allProcessingSelected}
+                                    onChange={toggleAllJobs}
+                                    className="h-4 w-4 accent-primary"
+                                    aria-label="Select all running jobs"
+                                  />
+                                </th>
+                                <th className="px-4 py-3 font-semibold">Job</th>
+                                <th className="px-4 py-3 font-semibold">Campaign</th>
+                                <th className="px-4 py-3 font-semibold">Owner</th>
+                                <th className="px-4 py-3 font-semibold">Progress</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {processingJobs.map((job) => (
+                                <tr key={job.id} className="border-t border-border">
+                                  <td className="px-4 py-3">
+                                    <input
+                                      type="checkbox"
+                                      checked={selectedJobIds.includes(job.id)}
+                                      onChange={() => toggleJobSelection(job.id)}
+                                      className="h-4 w-4 accent-primary"
+                                      aria-label={`Select ${job.name}`}
+                                    />
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <div className="font-semibold">{job.name}</div>
+                                    <div className="text-xs text-muted-foreground">{job.id}</div>
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <div className="font-semibold">{job.campaignType}</div>
+                                    <div className="text-xs text-muted-foreground">{job.campaignName}</div>
+                                  </td>
+                                  <td className="px-4 py-3">{job.owner}</td>
+                                  <td className="px-4 py-3">{job.progress}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
                         </div>
                         <div className="mt-4 flex flex-wrap gap-2">
                           <Button onClick={() => activateMaintenance(false)}>
