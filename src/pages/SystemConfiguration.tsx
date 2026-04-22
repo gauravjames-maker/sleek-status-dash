@@ -180,6 +180,21 @@ const SystemConfiguration = () => {
     );
   };
 
+  const relaunchAllPausedJobs = () => {
+    setJobs((current) =>
+      current.map((job) =>
+        job.status === "Paused"
+          ? {
+              ...job,
+              status: "Processing",
+              progress: "Queued for relaunch",
+              decision: "Allowed to complete",
+            }
+          : job
+      )
+    );
+  };
+
   const downloadJobsCsv = () => {
     const header = ["Job ID", "Start Time", "Campaign Name", "Campaign Type", "Owner", "Status", "Progress", "Maintenance Decision"];
     const rows = jobs.map((job) => [
