@@ -183,9 +183,10 @@ const SystemConfiguration = () => {
             {items.map((item) => (
               <button
                 key={item.label}
+                onClick={() => setActiveLabel(item.label)}
                 className={cn(
                   "flex w-full items-center justify-between border-b border-border px-4 py-2.5 text-left text-sm transition-colors hover:bg-accent",
-                  item.active
+                  activeLabel === item.label
                     ? "bg-secondary font-semibold text-foreground"
                     : "text-primary"
                 )}
@@ -205,59 +206,197 @@ const SystemConfiguration = () => {
         </aside>
 
         <section className="min-w-0 flex-1 overflow-auto">
-          <header className="flex h-16 items-center justify-between border-b border-border bg-background px-6">
-            <h2 className="text-lg font-bold">
-              AWS Identity and Access Management (IAM) Configuration Details
-            </h2>
-            <div className="flex items-center gap-2">
-              <Button variant="secondary" className="font-semibold">
-                Test Credentials
-              </Button>
-              <Button className="font-semibold">Save</Button>
+          {maintenanceMode && (
+            <div className="flex items-center gap-3 border-b border-border bg-destructive/10 px-6 py-3 text-sm font-semibold text-destructive">
+              <Wrench className="h-4 w-4" />
+              Maintenance mode is active. No new jobs will run until it is disabled.
             </div>
-          </header>
+          )}
 
-          <div className="p-7">
-            <div className="border border-border bg-card shadow-sm">
-              <button className="flex w-full items-center justify-between border-b border-border px-6 py-4 text-left">
+          {activeLabel === "Maintenance mode" ? (
+            <>
+              <header className="flex min-h-16 flex-wrap items-center justify-between gap-3 border-b border-border bg-background px-6 py-4">
                 <div>
-                  <div className="text-sm text-muted-foreground">
-                    AWS KMS Region {requiredMark}
-                  </div>
-                  <div className="text-sm font-medium">US East 1</div>
+                  <h2 className="text-lg font-bold">Maintenance mode</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Pause new job execution safely while current work is reviewed.
+                  </p>
                 </div>
-                <ChevronDown className="h-4 w-4 text-foreground" />
-              </button>
+                <div className="flex items-center gap-3 rounded-md border border-border bg-card px-4 py-2">
+                  <span className="text-sm font-semibold">
+                    {maintenanceMode ? "Active" : "Off"}
+                  </span>
+                  <Switch
+                    checked={maintenanceMode}
+                    onCheckedChange={() => toggleItem("Maintenance mode")}
+                  />
+                </div>
+              </header>
 
-              <div className="grid grid-cols-1 gap-4 p-6 md:grid-cols-2">
-                <label className="block bg-background px-4 py-3">
-                  <span className="block text-sm text-muted-foreground">
-                    Access Key {requiredMark}
-                  </span>
-                  <span className="block truncate text-sm font-medium">
-                    AKIAIT6PKCABIST26RIQ
-                  </span>
-                </label>
+              <div className="space-y-6 p-7">
+                <div className="grid gap-4 md:grid-cols-3">
+                  <div className="border border-border bg-card p-5 shadow-sm">
+                    <div className="text-sm text-muted-foreground">Running jobs now</div>
+                    <div className="mt-2 text-3xl font-bold">{processingJobs.length}</div>
+                  </div>
+                  <div className="border border-border bg-card p-5 shadow-sm">
+                    <div className="text-sm text-muted-foreground">Paused by override</div>
+                    <div className="mt-2 text-3xl font-bold">{pausedJobs.length}</div>
+                  </div>
+                  <div className="border border-border bg-card p-5 shadow-sm">
+                    <div className="text-sm text-muted-foreground">Notification contact</div>
+                    <input
+                      value={notificationEmail}
+                      onChange={(event) => setNotificationEmail(event.target.value)}
+                      className="mt-2 w-full border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                    />
+                  </div>
+                </div>
 
-                <label className="block bg-background px-4 py-3">
-                  <span className="block text-sm text-muted-foreground">
-                    Secret Key {requiredMark}
-                  </span>
-                  <span className="block truncate text-sm font-medium">
-                    L8H0hKSb/QcwzeibEzLoAVDw5zxN2LPKXiw+BP
-                  </span>
-                </label>
+                {reviewingMaintenance && (
+                  <div className="border border-primary/30 bg-primary/5 p-5 shadow-sm">
+                    <div className="flex items-start gap-3">
+                      <Bell className="mt-0.5 h-5 w-5 text-primary" />
+                      <div className="flex-1">
+                        <h3 className="font-bold">{processingJobs.length} jobs are currently running</h3>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          You can let them complete and we will notify {notificationEmail} when maintenance mode becomes active, or override and pause them now. Overridden jobs must be relaunched after maintenance mode is disabled.
+                        </p>
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          <Button onClick={() => activateMaintenance(false)}>
+                            <CheckCircle2 className="h-4 w-4" /> Allow jobs to complete
+                          </Button>
+                          <Button variant="destructive" onClick={() => activateMaintenance(true)}>
+                            <PauseCircle className="h-4 w-4" /> Override and pause jobs
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {pausedJobs.length > 0 && !maintenanceMode && (
+                  <div className="border border-destructive/30 bg-destructive/5 p-5 shadow-sm">
+                    <div className="flex items-start gap-3">
+                      <AlertTriangle className="mt-0.5 h-5 w-5 text-destructive" />
+                      <div>
+                        <h3 className="font-bold">Paused jobs need attention</h3>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          Maintenance mode is off. Relaunch any jobs that were overridden and paused.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="border border-border bg-card shadow-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
+                    <h3 className="font-bold">Job review</h3>
+                    <Button variant="secondary" onClick={downloadJobsCsv}>
+                      <Download className="h-4 w-4" /> Download CSV
+                    </Button>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm">
+                      <thead className="bg-secondary text-muted-foreground">
+                        <tr>
+                          <th className="px-5 py-3 font-semibold">Job</th>
+                          <th className="px-5 py-3 font-semibold">Owner</th>
+                          <th className="px-5 py-3 font-semibold">Progress</th>
+                          <th className="px-5 py-3 font-semibold">Decision</th>
+                          <th className="px-5 py-3 font-semibold">Status</th>
+                          <th className="px-5 py-3 font-semibold">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {jobs.map((job) => (
+                          <tr key={job.id} className="border-t border-border">
+                            <td className="px-5 py-4">
+                              <div className="font-semibold">{job.name}</div>
+                              <div className="text-xs text-muted-foreground">{job.id}</div>
+                            </td>
+                            <td className="px-5 py-4">{job.owner}</td>
+                            <td className="px-5 py-4">{job.progress}</td>
+                            <td className="px-5 py-4">{job.decision}</td>
+                            <td className="px-5 py-4">
+                              <span className={cn("inline-flex rounded-full px-2.5 py-1 text-xs font-semibold", job.status === "Paused" ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary")}>
+                                {job.status}
+                              </span>
+                            </td>
+                            <td className="px-5 py-4">
+                              {job.status === "Paused" && !maintenanceMode ? (
+                                <Button size="sm" onClick={() => relaunchJob(job.id)}>
+                                  <PlayCircle className="h-4 w-4" /> Relaunch
+                                </Button>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">No action</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
-            </div>
+            </>
+          ) : (
+            <>
+              <header className="flex h-16 items-center justify-between border-b border-border bg-background px-6">
+                <h2 className="text-lg font-bold">
+                  AWS Identity and Access Management (IAM) Configuration Details
+                </h2>
+                <div className="flex items-center gap-2">
+                  <Button variant="secondary" className="font-semibold">
+                    Test Credentials
+                  </Button>
+                  <Button className="font-semibold">Save</Button>
+                </div>
+              </header>
 
-            <div className="mt-6 flex items-start gap-3 text-sm text-muted-foreground">
-              <CircleSlash className="mt-0.5 h-4 w-4" />
-              <p>
-                Credentials are shown in a read-only style to mirror the current admin
-                configuration workflow.
-              </p>
-            </div>
-          </div>
+              <div className="p-7">
+                <div className="border border-border bg-card shadow-sm">
+                  <button className="flex w-full items-center justify-between border-b border-border px-6 py-4 text-left">
+                    <div>
+                      <div className="text-sm text-muted-foreground">
+                        AWS KMS Region {requiredMark}
+                      </div>
+                      <div className="text-sm font-medium">US East 1</div>
+                    </div>
+                    <ChevronDown className="h-4 w-4 text-foreground" />
+                  </button>
+
+                  <div className="grid grid-cols-1 gap-4 p-6 md:grid-cols-2">
+                    <label className="block bg-background px-4 py-3">
+                      <span className="block text-sm text-muted-foreground">
+                        Access Key {requiredMark}
+                      </span>
+                      <span className="block truncate text-sm font-medium">
+                        AKIAIT6PKCABIST26RIQ
+                      </span>
+                    </label>
+
+                    <label className="block bg-background px-4 py-3">
+                      <span className="block text-sm text-muted-foreground">
+                        Secret Key {requiredMark}
+                      </span>
+                      <span className="block truncate text-sm font-medium">
+                        L8H0hKSb/QcwzeibEzLoAVDw5zxN2LPKXiw+BP
+                      </span>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="mt-6 flex items-start gap-3 text-sm text-muted-foreground">
+                  <CircleSlash className="mt-0.5 h-4 w-4" />
+                  <p>
+                    Credentials are shown in a read-only style to mirror the current admin
+                    configuration workflow.
+                  </p>
+                </div>
+              </div>
+            </>
+          )}
         </section>
       </main>
     </div>
