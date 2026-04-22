@@ -25,6 +25,7 @@ interface ConfigItem {
 interface JobItem {
   id: string;
   name: string;
+  startTime: string;
   campaignType: "Marketing" | "Transactional" | "Experiments" | "External";
   campaignName: string;
   owner: string;
@@ -55,6 +56,7 @@ const runningJobs: JobItem[] = [
   {
     id: "JOB-8421",
     name: "Spring sale audience refresh",
+    startTime: "Apr 22, 2026 1:18 PM",
     campaignType: "Marketing",
     campaignName: "Spring Sale 2026",
     owner: "Marketing Ops",
@@ -65,6 +67,7 @@ const runningJobs: JobItem[] = [
   {
     id: "JOB-8425",
     name: "Daily campaign engagement rollup",
+    startTime: "Apr 22, 2026 1:34 PM",
     campaignType: "Transactional",
     campaignName: "Order Confirmation Series",
     owner: "Analytics",
@@ -75,6 +78,7 @@ const runningJobs: JobItem[] = [
   {
     id: "JOB-8430",
     name: "Journey eligibility sync",
+    startTime: "Apr 22, 2026 1:47 PM",
     campaignType: "Experiments",
     campaignName: "Offer Timing A/B Test",
     owner: "Journeys",
@@ -166,12 +170,12 @@ const SystemConfiguration = () => {
   };
 
   const downloadJobsCsv = () => {
-    const header = ["Job ID", "Job Name", "Campaign Type", "Campaign Name", "Owner", "Status", "Progress", "Maintenance Decision"];
+    const header = ["Job ID", "Start Time", "Campaign Name", "Campaign Type", "Owner", "Status", "Progress", "Maintenance Decision"];
     const rows = jobs.map((job) => [
       job.id,
-      job.name,
-      job.campaignType,
+      job.startTime,
       job.campaignName,
+      job.campaignType,
       job.owner,
       job.status,
       job.progress,
@@ -301,10 +305,11 @@ const SystemConfiguration = () => {
                                     aria-label="Select all running jobs"
                                   />
                                 </th>
-                                <th className="px-4 py-3 font-semibold">Job</th>
-                                <th className="px-4 py-3 font-semibold">Campaign</th>
+                                <th className="px-4 py-3 font-semibold">Job ID</th>
+                                <th className="px-4 py-3 font-semibold">Start time</th>
+                                <th className="px-4 py-3 font-semibold">Campaign Name</th>
+                                <th className="px-4 py-3 font-semibold">Campaign type</th>
                                 <th className="px-4 py-3 font-semibold">Owner</th>
-                                <th className="px-4 py-3 font-semibold">Progress</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -319,16 +324,11 @@ const SystemConfiguration = () => {
                                       aria-label={`Select ${job.name}`}
                                     />
                                   </td>
-                                  <td className="px-4 py-3">
-                                    <div className="font-semibold">{job.name}</div>
-                                    <div className="text-xs text-muted-foreground">{job.id}</div>
-                                  </td>
-                                  <td className="px-4 py-3">
-                                    <div className="font-semibold">{job.campaignType}</div>
-                                    <div className="text-xs text-muted-foreground">{job.campaignName}</div>
-                                  </td>
+                                  <td className="px-4 py-3 font-semibold">{job.id}</td>
+                                  <td className="px-4 py-3">{job.startTime}</td>
+                                  <td className="px-4 py-3">{job.campaignName}</td>
+                                  <td className="px-4 py-3">{job.campaignType}</td>
                                   <td className="px-4 py-3">{job.owner}</td>
-                                  <td className="px-4 py-3">{job.progress}</td>
                                 </tr>
                               ))}
                             </tbody>
