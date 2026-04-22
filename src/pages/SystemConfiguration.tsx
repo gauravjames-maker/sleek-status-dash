@@ -86,6 +86,17 @@ const runningJobs: JobItem[] = [
     decision: "Allowed to complete",
     status: "Processing",
   },
+  {
+    id: "JOB-8436",
+    name: "Partner API launch queue",
+    startTime: "Apr 22, 2026 2:06 PM",
+    campaignType: "External",
+    campaignName: "Retail Partner Weekend Push",
+    owner: "API Operations",
+    progress: "9% complete",
+    decision: "Allowed to complete",
+    status: "Processing",
+  },
 ];
 
 const requiredMark = <span className="text-destructive">*</span>;
@@ -377,6 +388,7 @@ const SystemConfiguration = () => {
                       <thead className="bg-secondary text-muted-foreground">
                         <tr>
                           <th className="px-5 py-3 font-semibold">Job</th>
+                          <th className="px-5 py-3 font-semibold">Start time</th>
                           <th className="px-5 py-3 font-semibold">Campaign</th>
                           <th className="px-5 py-3 font-semibold">Owner</th>
                           <th className="px-5 py-3 font-semibold">Progress</th>
@@ -392,6 +404,7 @@ const SystemConfiguration = () => {
                               <div className="font-semibold">{job.name}</div>
                               <div className="text-xs text-muted-foreground">{job.id}</div>
                             </td>
+                            <td className="px-5 py-4">{job.startTime}</td>
                             <td className="px-5 py-4">
                               <div className="font-semibold">{job.campaignType}</div>
                               <div className="text-xs text-muted-foreground">{job.campaignName}</div>
