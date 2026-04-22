@@ -86,6 +86,17 @@ const runningJobs: JobItem[] = [
     decision: "Allowed to complete",
     status: "Processing",
   },
+  {
+    id: "JOB-8436",
+    name: "Partner API launch queue",
+    startTime: "Apr 22, 2026 2:06 PM",
+    campaignType: "External",
+    campaignName: "Retail Partner Weekend Push",
+    owner: "API Operations",
+    progress: "9% complete",
+    decision: "Allowed to complete",
+    status: "Processing",
+  },
 ];
 
 const requiredMark = <span className="text-destructive">*</span>;
