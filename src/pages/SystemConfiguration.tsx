@@ -346,14 +346,41 @@ const SystemConfiguration = () => {
                 <div className="border border-border bg-card shadow-sm">
                   <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
                     <h3 className="font-bold">Job review</h3>
-                    <Button variant="secondary" onClick={downloadJobsCsv}>
-                      <Download className="h-4 w-4" /> Download CSV
-                    </Button>
+                    <div className="flex flex-wrap gap-2">
+                      {reviewingMaintenance && (
+                        <>
+                          <Button onClick={() => activateMaintenance(false)}>
+                            <CheckCircle2 className="h-4 w-4" /> Allow jobs to complete
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            onClick={() => activateMaintenance(true)}
+                            disabled={selectedJobIds.length === 0}
+                          >
+                            <PauseCircle className="h-4 w-4" /> Pause selected jobs
+                          </Button>
+                        </>
+                      )}
+                      <Button variant="secondary" onClick={downloadJobsCsv}>
+                        <Download className="h-4 w-4" /> Download CSV
+                      </Button>
+                    </div>
                   </div>
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm">
                       <thead className="bg-secondary text-muted-foreground">
                         <tr>
+                          {reviewingMaintenance && (
+                            <th className="w-12 px-5 py-3">
+                              <input
+                                type="checkbox"
+                                checked={allProcessingSelected}
+                                onChange={toggleAllJobs}
+                                className="h-4 w-4 accent-primary"
+                                aria-label="Select all running jobs"
+                              />
+                            </th>
+                          )}
                           <th className="px-5 py-3 font-semibold">Job</th>
                           <th className="px-5 py-3 font-semibold">Start time</th>
                           <th className="px-5 py-3 font-semibold">Campaign</th>
@@ -367,6 +394,17 @@ const SystemConfiguration = () => {
                       <tbody>
                         {jobs.map((job) => (
                           <tr key={job.id} className="border-t border-border">
+                            {reviewingMaintenance && (
+                              <td className="px-5 py-4">
+                                <input
+                                  type="checkbox"
+                                  checked={selectedJobIds.includes(job.id)}
+                                  onChange={() => toggleJobSelection(job.id)}
+                                  className="h-4 w-4 accent-primary"
+                                  aria-label={`Select ${job.name}`}
+                                />
+                              </td>
+                            )}
                             <td className="px-5 py-4">
                               <div className="font-semibold">{job.name}</div>
                               <div className="text-xs text-muted-foreground">{job.id}</div>
