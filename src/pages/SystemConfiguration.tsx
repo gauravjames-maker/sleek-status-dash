@@ -386,6 +386,9 @@ const SystemConfiguration = () => {
                         <p className="mt-1 text-sm text-muted-foreground">
                           Maintenance mode is off. Relaunch any jobs that were overridden and paused.
                         </p>
+                        <Button className="mt-4" onClick={relaunchAllPausedJobs}>
+                          <PlayCircle className="h-4 w-4" /> Resume all paused jobs
+                        </Button>
                       </div>
                     </div>
                   </div>
