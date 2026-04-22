@@ -84,6 +84,7 @@ const SystemConfiguration = () => {
   const [maintenanceMode, setMaintenanceMode] = useState(false);
   const [reviewingMaintenance, setReviewingMaintenance] = useState(false);
   const [jobs, setJobs] = useState<JobItem[]>(runningJobs);
+  const [selectedJobIds, setSelectedJobIds] = useState<string[]>(runningJobs.map((job) => job.id));
   const [notificationEmail, setNotificationEmail] = useState("ops-team@company.com");
 
   const toggleItem = (label: string) => {
@@ -112,9 +113,9 @@ const SystemConfiguration = () => {
   const activateMaintenance = (overrideRunningJobs: boolean) => {
     const nextJobs = jobs.map((job) => ({
       ...job,
-      decision: overrideRunningJobs ? "Overridden and paused" : "Allowed to complete",
-      status: overrideRunningJobs ? "Paused" : job.status,
-      progress: overrideRunningJobs ? "Paused by admin" : job.progress,
+      decision: overrideRunningJobs && selectedJobIds.includes(job.id) ? "Overridden and paused" : "Allowed to complete",
+      status: overrideRunningJobs && selectedJobIds.includes(job.id) ? "Paused" : job.status,
+      progress: overrideRunningJobs && selectedJobIds.includes(job.id) ? "Paused by admin" : job.progress,
     })) as JobItem[];
 
     setJobs(nextJobs);
@@ -124,6 +125,20 @@ const SystemConfiguration = () => {
       current.map((item) =>
         item.label === "Maintenance mode" ? { ...item, enabled: true } : item
       )
+    );
+  };
+
+  const toggleJobSelection = (jobId: string) => {
+    setSelectedJobIds((current) =>
+      current.includes(jobId)
+        ? current.filter((id) => id !== jobId)
+        : [...current, jobId]
+    );
+  };
+
+  const toggleAllJobs = () => {
+    setSelectedJobIds((current) =>
+      current.length === processingJobs.length ? [] : processingJobs.map((job) => job.id)
     );
   };
 
@@ -166,6 +181,7 @@ const SystemConfiguration = () => {
 
   const pausedJobs = jobs.filter((job) => job.status === "Paused");
   const processingJobs = jobs.filter((job) => job.status === "Processing");
+  const allProcessingSelected = processingJobs.length > 0 && selectedJobIds.length === processingJobs.length;
 
   return (
     <div className="flex h-screen bg-background text-foreground">
@@ -260,14 +276,48 @@ const SystemConfiguration = () => {
                       <div className="flex-1">
                         <h3 className="font-bold">{processingJobs.length} jobs are currently running</h3>
                         <p className="mt-1 text-sm text-muted-foreground">
-                          You can let them complete and we will notify {notificationEmail} when maintenance mode becomes active, or override and pause them now. Overridden jobs must be relaunched after maintenance mode is disabled.
+                          Select the running jobs you want to override and pause now. Unselected jobs will finish first, and we will notify {notificationEmail} when maintenance mode becomes active.
                         </p>
+                        <div className="mt-4 overflow-hidden border border-border bg-card">
+                          <label className="flex cursor-pointer items-center gap-3 border-b border-border bg-secondary px-4 py-3 text-sm font-semibold">
+                            <input
+                              type="checkbox"
+                              checked={allProcessingSelected}
+                              onChange={toggleAllJobs}
+                              className="h-4 w-4 accent-primary"
+                            />
+                            Select all running jobs
+                          </label>
+                          {processingJobs.map((job) => (
+                            <label
+                              key={job.id}
+                              className="flex cursor-pointer items-center gap-3 border-b border-border px-4 py-3 last:border-b-0"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={selectedJobIds.includes(job.id)}
+                                onChange={() => toggleJobSelection(job.id)}
+                                className="h-4 w-4 accent-primary"
+                              />
+                              <span className="min-w-0 flex-1">
+                                <span className="block font-semibold">{job.name}</span>
+                                <span className="block text-xs text-muted-foreground">
+                                  {job.id} • {job.owner} • {job.progress}
+                                </span>
+                              </span>
+                            </label>
+                          ))}
+                        </div>
                         <div className="mt-4 flex flex-wrap gap-2">
                           <Button onClick={() => activateMaintenance(false)}>
                             <CheckCircle2 className="h-4 w-4" /> Allow jobs to complete
                           </Button>
-                          <Button variant="destructive" onClick={() => activateMaintenance(true)}>
-                            <PauseCircle className="h-4 w-4" /> Override and pause jobs
+                          <Button
+                            variant="destructive"
+                            onClick={() => activateMaintenance(true)}
+                            disabled={selectedJobIds.length === 0}
+                          >
+                            <PauseCircle className="h-4 w-4" /> Pause selected jobs
                           </Button>
                         </div>
                       </div>
