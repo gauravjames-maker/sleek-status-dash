@@ -1,5 +1,16 @@
 import { useState } from "react";
-import { ChevronDown, CircleSlash, SlidersHorizontal } from "lucide-react";
+import {
+  AlertTriangle,
+  Bell,
+  CheckCircle2,
+  ChevronDown,
+  CircleSlash,
+  Download,
+  PauseCircle,
+  PlayCircle,
+  SlidersHorizontal,
+  Wrench,
+} from "lucide-react";
 import { CampaignSidebar } from "@/components/CampaignSidebar";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -9,6 +20,15 @@ interface ConfigItem {
   label: string;
   active?: boolean;
   enabled?: boolean;
+}
+
+interface JobItem {
+  id: string;
+  name: string;
+  owner: string;
+  progress: string;
+  decision: "Allowed to complete" | "Overridden and paused";
+  status: "Processing" | "Paused" | "Completed";
 }
 
 const configurationItems: ConfigItem[] = [
@@ -26,20 +46,126 @@ const configurationItems: ConfigItem[] = [
   { label: "Fast Cache Settings", enabled: false },
   { label: "Blueprint Snapshot Settings" },
   { label: "Vendor API" },
+  { label: "Maintenance mode", enabled: false },
+];
+
+const runningJobs: JobItem[] = [
+  {
+    id: "JOB-8421",
+    name: "Spring sale audience refresh",
+    owner: "Marketing Ops",
+    progress: "72% complete",
+    decision: "Allowed to complete",
+    status: "Processing",
+  },
+  {
+    id: "JOB-8425",
+    name: "Daily campaign engagement rollup",
+    owner: "Analytics",
+    progress: "41% complete",
+    decision: "Allowed to complete",
+    status: "Processing",
+  },
+  {
+    id: "JOB-8430",
+    name: "Journey eligibility sync",
+    owner: "Journeys",
+    progress: "18% complete",
+    decision: "Allowed to complete",
+    status: "Processing",
+  },
 ];
 
 const requiredMark = <span className="text-destructive">*</span>;
 
 const SystemConfiguration = () => {
   const [items, setItems] = useState(configurationItems);
+  const [activeLabel, setActiveLabel] = useState("AWS Data Encryption");
+  const [maintenanceMode, setMaintenanceMode] = useState(false);
+  const [reviewingMaintenance, setReviewingMaintenance] = useState(false);
+  const [jobs, setJobs] = useState<JobItem[]>(runningJobs);
+  const [notificationEmail, setNotificationEmail] = useState("ops-team@company.com");
 
   const toggleItem = (label: string) => {
+    if (label === "Maintenance mode") {
+      if (maintenanceMode) {
+        setMaintenanceMode(false);
+        setReviewingMaintenance(false);
+        setItems((current) =>
+          current.map((item) =>
+            item.label === label ? { ...item, enabled: false } : item
+          )
+        );
+      } else {
+        setReviewingMaintenance(true);
+      }
+      return;
+    }
+
     setItems((current) =>
       current.map((item) =>
         item.label === label ? { ...item, enabled: !item.enabled } : item
       )
     );
   };
+
+  const activateMaintenance = (overrideRunningJobs: boolean) => {
+    const nextJobs = jobs.map((job) => ({
+      ...job,
+      decision: overrideRunningJobs ? "Overridden and paused" : "Allowed to complete",
+      status: overrideRunningJobs ? "Paused" : job.status,
+      progress: overrideRunningJobs ? "Paused by admin" : job.progress,
+    })) as JobItem[];
+
+    setJobs(nextJobs);
+    setMaintenanceMode(true);
+    setReviewingMaintenance(false);
+    setItems((current) =>
+      current.map((item) =>
+        item.label === "Maintenance mode" ? { ...item, enabled: true } : item
+      )
+    );
+  };
+
+  const relaunchJob = (jobId: string) => {
+    setJobs((current) =>
+      current.map((job) =>
+        job.id === jobId
+          ? {
+              ...job,
+              status: "Processing",
+              progress: "Queued for relaunch",
+              decision: "Allowed to complete",
+            }
+          : job
+      )
+    );
+  };
+
+  const downloadJobsCsv = () => {
+    const header = ["Job ID", "Job Name", "Owner", "Status", "Progress", "Maintenance Decision"];
+    const rows = jobs.map((job) => [
+      job.id,
+      job.name,
+      job.owner,
+      job.status,
+      job.progress,
+      job.decision,
+    ]);
+    const csv = [header, ...rows]
+      .map((row) => row.map((value) => `"${value.replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "maintenance-mode-jobs.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const pausedJobs = jobs.filter((job) => job.status === "Paused");
+  const processingJobs = jobs.filter((job) => job.status === "Processing");
 
   return (
     <div className="flex h-screen bg-background text-foreground">
