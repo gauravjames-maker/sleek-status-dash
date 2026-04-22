@@ -84,6 +84,7 @@ const SystemConfiguration = () => {
   const [maintenanceMode, setMaintenanceMode] = useState(false);
   const [reviewingMaintenance, setReviewingMaintenance] = useState(false);
   const [jobs, setJobs] = useState<JobItem[]>(runningJobs);
+  const [selectedJobIds, setSelectedJobIds] = useState<string[]>(runningJobs.map((job) => job.id));
   const [notificationEmail, setNotificationEmail] = useState("ops-team@company.com");
 
   const toggleItem = (label: string) => {
@@ -112,9 +113,9 @@ const SystemConfiguration = () => {
   const activateMaintenance = (overrideRunningJobs: boolean) => {
     const nextJobs = jobs.map((job) => ({
       ...job,
-      decision: overrideRunningJobs ? "Overridden and paused" : "Allowed to complete",
-      status: overrideRunningJobs ? "Paused" : job.status,
-      progress: overrideRunningJobs ? "Paused by admin" : job.progress,
+      decision: overrideRunningJobs && selectedJobIds.includes(job.id) ? "Overridden and paused" : "Allowed to complete",
+      status: overrideRunningJobs && selectedJobIds.includes(job.id) ? "Paused" : job.status,
+      progress: overrideRunningJobs && selectedJobIds.includes(job.id) ? "Paused by admin" : job.progress,
     })) as JobItem[];
 
     setJobs(nextJobs);
@@ -124,6 +125,20 @@ const SystemConfiguration = () => {
       current.map((item) =>
         item.label === "Maintenance mode" ? { ...item, enabled: true } : item
       )
+    );
+  };
+
+  const toggleJobSelection = (jobId: string) => {
+    setSelectedJobIds((current) =>
+      current.includes(jobId)
+        ? current.filter((id) => id !== jobId)
+        : [...current, jobId]
+    );
+  };
+
+  const toggleAllJobs = () => {
+    setSelectedJobIds((current) =>
+      current.length === processingJobs.length ? [] : processingJobs.map((job) => job.id)
     );
   };
 
@@ -166,6 +181,7 @@ const SystemConfiguration = () => {
 
   const pausedJobs = jobs.filter((job) => job.status === "Paused");
   const processingJobs = jobs.filter((job) => job.status === "Processing");
+  const allProcessingSelected = processingJobs.length > 0 && selectedJobIds.length === processingJobs.length;
 
   return (
     <div className="flex h-screen bg-background text-foreground">
