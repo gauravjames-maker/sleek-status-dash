@@ -25,6 +25,7 @@ import CampaignAPIDetail from "./pages/CampaignAPIDetail";
 import AnalyticsJobList from "./pages/AnalyticsJobList";
 import Journeys from "./pages/Journeys";
 import JourneyDetail from "./pages/JourneyDetail";
+import SystemConfiguration from "./pages/SystemConfiguration";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -55,6 +56,7 @@ const App = () => (
           <Route path="/people/audience-studio-dbt/builder" element={<DBTBuilder />} />
           <Route path="/content/templates" element={<Templates />} />
           <Route path="/content/templates/:id" element={<TemplateDetail />} />
+          <Route path="/admin/system-configuration" element={<SystemConfiguration />} />
           <Route path="/admin/campaign-api" element={<CampaignAPI />} />
           <Route path="/admin/campaign-api/:id" element={<CampaignAPIDetail />} />
           <Route path="/analytics/job" element={<AnalyticsJobList />} />
