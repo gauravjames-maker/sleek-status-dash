@@ -365,10 +365,6 @@ const SystemConfiguration = () => {
                                 {p.processType}
                               </span>
                             </td>
-                            <td className="px-5 py-4">
-                              <div className="font-semibold">{p.campaignType}</div>
-                              <div className="text-xs text-muted-foreground">{p.campaignName}</div>
-                            </td>
                             <td className="px-5 py-4">{p.owner}</td>
                             
                             <td className="px-5 py-4">
