@@ -346,7 +346,7 @@ const SystemConfiguration = () => {
                           <th className="px-5 py-3 font-semibold">Process</th>
                           <th className="px-5 py-3 font-semibold">Start time</th>
                           <th className="px-5 py-3 font-semibold">Type</th>
-                          <th className="px-5 py-3 font-semibold">Campaign</th>
+                          
                           <th className="px-5 py-3 font-semibold">Owner</th>
                           
                           <th className="px-5 py-3 font-semibold">Status</th>
