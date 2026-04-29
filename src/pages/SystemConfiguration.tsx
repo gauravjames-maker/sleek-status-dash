@@ -1,13 +1,8 @@
 import { useState } from "react";
 import {
-  AlertTriangle,
-  Bell,
-  CheckCircle2,
   ChevronDown,
   CircleSlash,
   Download,
-  PauseCircle,
-  PlayCircle,
   SlidersHorizontal,
   Wrench,
 } from "lucide-react";
@@ -15,6 +10,7 @@ import { CampaignSidebar } from "@/components/CampaignSidebar";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
+import { useMaintenanceMode } from "@/context/MaintenanceModeContext";
 
 interface ConfigItem {
   label: string;
@@ -22,17 +18,21 @@ interface ConfigItem {
   enabled?: boolean;
 }
 
-interface JobItem {
+type ProcessType = "Job" | "Posted Data" | "Snapshot" | "Journey";
+
+interface ProcessItem {
   id: string;
   name: string;
   startTime: string;
+  processType: ProcessType;
   campaignType: "Marketing" | "Transactional" | "Experiments" | "External";
   campaignName: string;
   owner: string;
   progress: string;
-  decision: "Allowed to complete" | "Overridden and paused";
-  status: "Processing" | "Paused" | "Completed";
+  status: "Processing" | "Completed";
 }
+
+const PROCESS_TYPES: ProcessType[] = ["Job", "Posted Data", "Snapshot", "Journey"];
 
 const configurationItems: ConfigItem[] = [
   { label: "AWS Data Encryption", active: true, enabled: true },
@@ -52,49 +52,93 @@ const configurationItems: ConfigItem[] = [
   { label: "Maintenance mode", enabled: false },
 ];
 
-const runningJobs: JobItem[] = [
+const inFlightProcesses: ProcessItem[] = [
   {
     id: "JOB-8421",
     name: "Spring sale audience refresh",
     startTime: "Apr 22, 2026 1:18 PM",
+    processType: "Job",
     campaignType: "Marketing",
     campaignName: "Spring Sale 2026",
     owner: "Marketing Ops",
     progress: "72% complete",
-    decision: "Allowed to complete",
     status: "Processing",
   },
   {
     id: "JOB-8425",
     name: "Daily campaign engagement rollup",
     startTime: "Apr 22, 2026 1:34 PM",
+    processType: "Job",
     campaignType: "Transactional",
     campaignName: "Order Confirmation Series",
     owner: "Analytics",
     progress: "41% complete",
-    decision: "Allowed to complete",
     status: "Processing",
   },
   {
-    id: "JOB-8430",
-    name: "Journey eligibility sync",
-    startTime: "Apr 22, 2026 1:47 PM",
-    campaignType: "Experiments",
-    campaignName: "Offer Timing A/B Test",
-    owner: "Journeys",
-    progress: "18% complete",
-    decision: "Allowed to complete",
-    status: "Processing",
-  },
-  {
-    id: "JOB-8436",
-    name: "Partner API launch queue",
-    startTime: "Apr 22, 2026 2:06 PM",
+    id: "PD-3310",
+    name: "Inbound CRM events batch",
+    startTime: "Apr 22, 2026 1:40 PM",
+    processType: "Posted Data",
     campaignType: "External",
-    campaignName: "Retail Partner Weekend Push",
-    owner: "API Operations",
-    progress: "9% complete",
-    decision: "Allowed to complete",
+    campaignName: "CRM Sync",
+    owner: "Data Platform",
+    progress: "Receiving payload",
+    status: "Processing",
+  },
+  {
+    id: "PD-3312",
+    name: "Loyalty tier updates",
+    startTime: "Apr 22, 2026 1:52 PM",
+    processType: "Posted Data",
+    campaignType: "External",
+    campaignName: "Loyalty Sync",
+    owner: "Loyalty Team",
+    progress: "Validating records",
+    status: "Processing",
+  },
+  {
+    id: "SNAP-921",
+    name: "Blueprint snapshot - Active subscribers",
+    startTime: "Apr 22, 2026 1:30 PM",
+    processType: "Snapshot",
+    campaignType: "Marketing",
+    campaignName: "Subscriber Blueprint",
+    owner: "Audience Ops",
+    progress: "55% complete",
+    status: "Processing",
+  },
+  {
+    id: "SNAP-924",
+    name: "VIP segment snapshot",
+    startTime: "Apr 22, 2026 2:01 PM",
+    processType: "Snapshot",
+    campaignType: "Marketing",
+    campaignName: "VIP Blueprint",
+    owner: "Audience Ops",
+    progress: "27% complete",
+    status: "Processing",
+  },
+  {
+    id: "JRY-208",
+    name: "Welcome journey eligibility tick",
+    startTime: "Apr 22, 2026 1:47 PM",
+    processType: "Journey",
+    campaignType: "Experiments",
+    campaignName: "Welcome Journey",
+    owner: "Journeys",
+    progress: "Step 3 of 6",
+    status: "Processing",
+  },
+  {
+    id: "JRY-211",
+    name: "Cart recovery journey send",
+    startTime: "Apr 22, 2026 2:06 PM",
+    processType: "Journey",
+    campaignType: "Marketing",
+    campaignName: "Cart Recovery",
+    owner: "Journeys",
+    progress: "Step 2 of 4",
     status: "Processing",
   },
 ];
@@ -104,25 +148,18 @@ const requiredMark = <span className="text-destructive">*</span>;
 const SystemConfiguration = () => {
   const [items, setItems] = useState(configurationItems);
   const [activeLabel, setActiveLabel] = useState("AWS Data Encryption");
-  const [maintenanceMode, setMaintenanceMode] = useState(false);
-  const [reviewingMaintenance, setReviewingMaintenance] = useState(false);
-  const [jobs, setJobs] = useState<JobItem[]>(runningJobs);
-  const [selectedJobIds, setSelectedJobIds] = useState<string[]>(runningJobs.map((job) => job.id));
+  const { maintenanceMode, setMaintenanceMode, autoDisableOnRestart, setAutoDisableOnRestart } =
+    useMaintenanceMode();
+  const [processes] = useState<ProcessItem[]>(inFlightProcesses);
   const [notificationEmail, setNotificationEmail] = useState("ops-team@company.com");
 
   const toggleItem = (label: string) => {
     if (label === "Maintenance mode") {
-      if (maintenanceMode) {
-        setMaintenanceMode(false);
-        setReviewingMaintenance(false);
-        setItems((current) =>
-          current.map((item) =>
-            item.label === label ? { ...item, enabled: false } : item
-          )
-        );
-      } else {
-        setReviewingMaintenance(true);
-      }
+      const next = !maintenanceMode;
+      setMaintenanceMode(next);
+      setItems((current) =>
+        current.map((item) => (item.label === label ? { ...item, enabled: next } : item))
+      );
       return;
     }
 
@@ -133,79 +170,17 @@ const SystemConfiguration = () => {
     );
   };
 
-  const activateMaintenance = (overrideRunningJobs: boolean) => {
-    const nextJobs = jobs.map((job) => ({
-      ...job,
-      decision: overrideRunningJobs && selectedJobIds.includes(job.id) ? "Overridden and paused" : "Allowed to complete",
-      status: overrideRunningJobs && selectedJobIds.includes(job.id) ? "Paused" : job.status,
-      progress: overrideRunningJobs && selectedJobIds.includes(job.id) ? "Paused by admin" : job.progress,
-    })) as JobItem[];
-
-    setJobs(nextJobs);
-    setMaintenanceMode(true);
-    setReviewingMaintenance(false);
-    setItems((current) =>
-      current.map((item) =>
-        item.label === "Maintenance mode" ? { ...item, enabled: true } : item
-      )
-    );
-  };
-
-  const toggleJobSelection = (jobId: string) => {
-    setSelectedJobIds((current) =>
-      current.includes(jobId)
-        ? current.filter((id) => id !== jobId)
-        : [...current, jobId]
-    );
-  };
-
-  const toggleAllJobs = () => {
-    setSelectedJobIds((current) =>
-      current.length === processingJobs.length ? [] : processingJobs.map((job) => job.id)
-    );
-  };
-
-  const relaunchJob = (jobId: string) => {
-    setJobs((current) =>
-      current.map((job) =>
-        job.id === jobId
-          ? {
-              ...job,
-              status: "Processing",
-              progress: "Queued for relaunch",
-              decision: "Allowed to complete",
-            }
-          : job
-      )
-    );
-  };
-
-  const relaunchAllPausedJobs = () => {
-    setJobs((current) =>
-      current.map((job) =>
-        job.status === "Paused"
-          ? {
-              ...job,
-              status: "Processing",
-              progress: "Queued for relaunch",
-              decision: "Allowed to complete",
-            }
-          : job
-      )
-    );
-  };
-
-  const downloadJobsCsv = () => {
-    const header = ["Job ID", "Start Time", "Campaign Name", "Campaign Type", "Owner", "Status", "Progress", "Maintenance Decision"];
-    const rows = jobs.map((job) => [
-      job.id,
-      job.startTime,
-      job.campaignName,
-      job.campaignType,
-      job.owner,
-      job.status,
-      job.progress,
-      job.decision,
+  const downloadProcessesCsv = () => {
+    const header = ["Process ID", "Start Time", "Type", "Campaign Name", "Campaign Type", "Owner", "Status", "Progress"];
+    const rows = processes.map((p) => [
+      p.id,
+      p.startTime,
+      p.processType,
+      p.campaignName,
+      p.campaignType,
+      p.owner,
+      p.status,
+      p.progress,
     ]);
     const csv = [header, ...rows]
       .map((row) => row.map((value) => `"${value.replace(/"/g, '""')}"`).join(","))
@@ -214,17 +189,15 @@ const SystemConfiguration = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = "maintenance-mode-jobs.csv";
+    link.download = "maintenance-mode-processes.csv";
     link.click();
     URL.revokeObjectURL(url);
   };
 
-  const pausedJobs = jobs.filter((job) => job.status === "Paused");
-  const processingJobs = jobs.filter((job) => job.status === "Processing");
-  const allProcessingSelected = processingJobs.length > 0 && selectedJobIds.length === processingJobs.length;
+  const inFlightCount = processes.filter((p) => p.status === "Processing").length;
 
   return (
-    <div className="flex h-screen bg-background text-foreground">
+    <div className="flex h-full bg-background text-foreground">
       <CampaignSidebar />
       <main className="flex min-w-0 flex-1 overflow-hidden">
         <aside className="w-64 shrink-0 border-r border-border bg-card">
@@ -262,20 +235,13 @@ const SystemConfiguration = () => {
         </aside>
 
         <section className="min-w-0 flex-1 overflow-auto">
-          {maintenanceMode && (
-            <div className="flex items-center gap-3 border-b border-border bg-destructive/10 px-6 py-3 text-sm font-semibold text-destructive">
-              <Wrench className="h-4 w-4" />
-              Maintenance mode is active. No new jobs will run until it is disabled.
-            </div>
-          )}
-
           {activeLabel === "Maintenance mode" ? (
             <>
               <header className="flex min-h-16 flex-wrap items-center justify-between gap-3 border-b border-border bg-background px-6 py-4">
                 <div>
                   <h2 className="text-lg font-bold">Maintenance mode</h2>
                   <p className="text-sm text-muted-foreground">
-                    Pause new job execution safely while current work is reviewed.
+                    Block new scheduled work safely. In-flight processes finish naturally.
                   </p>
                 </div>
                 <div className="flex items-center gap-3 rounded-md border border-border bg-card px-4 py-2">
@@ -292,12 +258,8 @@ const SystemConfiguration = () => {
               <div className="space-y-6 p-7">
                 <div className="grid gap-4 md:grid-cols-3">
                   <div className="border border-border bg-card p-5 shadow-sm">
-                    <div className="text-sm text-muted-foreground">Running jobs now</div>
-                    <div className="mt-2 text-3xl font-bold">{processingJobs.length}</div>
-                  </div>
-                  <div className="border border-border bg-card p-5 shadow-sm">
-                    <div className="text-sm text-muted-foreground">Paused by override</div>
-                    <div className="mt-2 text-3xl font-bold">{pausedJobs.length}</div>
+                    <div className="text-sm text-muted-foreground">In-flight processes</div>
+                    <div className="mt-2 text-3xl font-bold">{inFlightCount}</div>
                   </div>
                   <div className="border border-border bg-card p-5 shadow-sm">
                     <div className="text-sm text-muted-foreground">Notification contact</div>
@@ -307,129 +269,81 @@ const SystemConfiguration = () => {
                       className="mt-2 w-full border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
                     />
                   </div>
+                  <div className="border border-border bg-card p-5 shadow-sm">
+                    <div className="text-sm text-muted-foreground">Affected process types</div>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {PROCESS_TYPES.map((t) => (
+                        <span
+                          key={t}
+                          className="inline-flex rounded-full bg-secondary px-2.5 py-1 text-xs font-semibold text-secondary-foreground"
+                        >
+                          {t}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
                 </div>
 
-                {reviewingMaintenance && (
-                  <div className="border border-primary/30 bg-primary/5 p-5 shadow-sm">
-                    <div className="flex items-start gap-3">
-                      <Bell className="mt-0.5 h-5 w-5 text-primary" />
-                      <div className="flex-1">
-                        <h3 className="font-bold">{processingJobs.length} jobs are currently running</h3>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                          Select the running jobs you want to override and pause now. Unselected jobs will finish first, and we will notify {notificationEmail} when maintenance mode becomes active.
-                        </p>
-                        <p className="mt-3 text-sm font-semibold text-foreground">
-                          Use the Job review table below to select jobs and choose whether to allow them to complete or pause selected jobs.
-                        </p>
-                      </div>
+                <div className="border border-border bg-card p-5 shadow-sm">
+                  <h3 className="font-bold">Behavior</h3>
+                  <div className="mt-4 flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="text-sm font-semibold">Automatically disable on system restart</div>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        When the platform restarts, Maintenance Mode will turn itself off so the system
+                        doesn't stay gated through an unintended outage.
+                      </p>
                     </div>
+                    <Switch
+                      checked={autoDisableOnRestart}
+                      onCheckedChange={setAutoDisableOnRestart}
+                    />
                   </div>
-                )}
-
-                {pausedJobs.length > 0 && !maintenanceMode && (
-                  <div className="border border-destructive/30 bg-destructive/5 p-5 shadow-sm">
-                    <div className="flex items-start gap-3">
-                      <AlertTriangle className="mt-0.5 h-5 w-5 text-destructive" />
-                      <div>
-                        <h3 className="font-bold">Paused jobs need attention</h3>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                          Maintenance mode is off. Relaunch any jobs that were overridden and paused.
-                        </p>
-                        <Button className="mt-4" onClick={relaunchAllPausedJobs}>
-                          <PlayCircle className="h-4 w-4" /> Resume all paused jobs
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                )}
+                </div>
 
                 <div className="border border-border bg-card shadow-sm">
                   <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
-                    <h3 className="font-bold">Job review</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {reviewingMaintenance && (
-                        <>
-                          <Button onClick={() => activateMaintenance(false)}>
-                            <CheckCircle2 className="h-4 w-4" /> Allow jobs to complete
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            onClick={() => activateMaintenance(true)}
-                            disabled={selectedJobIds.length === 0}
-                          >
-                            <PauseCircle className="h-4 w-4" /> Pause selected jobs
-                          </Button>
-                        </>
-                      )}
-                      <Button variant="secondary" onClick={downloadJobsCsv}>
-                        <Download className="h-4 w-4" /> Download CSV
-                      </Button>
-                    </div>
+                    <h3 className="font-bold">In-flight scheduled work</h3>
+                    <Button variant="secondary" onClick={downloadProcessesCsv}>
+                      <Download className="h-4 w-4" /> Download CSV
+                    </Button>
                   </div>
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm">
                       <thead className="bg-secondary text-muted-foreground">
                         <tr>
-                          {reviewingMaintenance && (
-                            <th className="w-12 px-5 py-3">
-                              <input
-                                type="checkbox"
-                                checked={allProcessingSelected}
-                                onChange={toggleAllJobs}
-                                className="h-4 w-4 accent-primary"
-                                aria-label="Select all running jobs"
-                              />
-                            </th>
-                          )}
-                          <th className="px-5 py-3 font-semibold">Job</th>
+                          <th className="px-5 py-3 font-semibold">Process</th>
                           <th className="px-5 py-3 font-semibold">Start time</th>
+                          <th className="px-5 py-3 font-semibold">Type</th>
                           <th className="px-5 py-3 font-semibold">Campaign</th>
                           <th className="px-5 py-3 font-semibold">Owner</th>
                           <th className="px-5 py-3 font-semibold">Progress</th>
-                          <th className="px-5 py-3 font-semibold">Decision</th>
                           <th className="px-5 py-3 font-semibold">Status</th>
-                          <th className="px-5 py-3 font-semibold">Action</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {jobs.map((job) => (
-                          <tr key={job.id} className="border-t border-border">
-                            {reviewingMaintenance && (
-                              <td className="px-5 py-4">
-                                <input
-                                  type="checkbox"
-                                  checked={selectedJobIds.includes(job.id)}
-                                  onChange={() => toggleJobSelection(job.id)}
-                                  className="h-4 w-4 accent-primary"
-                                  aria-label={`Select ${job.name}`}
-                                />
-                              </td>
-                            )}
+                        {processes.map((p) => (
+                          <tr key={p.id} className="border-t border-border">
                             <td className="px-5 py-4">
-                              <div className="font-semibold">{job.name}</div>
-                              <div className="text-xs text-muted-foreground">{job.id}</div>
+                              <div className="font-semibold">{p.name}</div>
+                              <div className="text-xs text-muted-foreground">{p.id}</div>
                             </td>
-                            <td className="px-5 py-4">{job.startTime}</td>
+                            <td className="px-5 py-4">{p.startTime}</td>
                             <td className="px-5 py-4">
-                              <div className="font-semibold">{job.campaignType}</div>
-                              <div className="text-xs text-muted-foreground">{job.campaignName}</div>
-                            </td>
-                            <td className="px-5 py-4">{job.owner}</td>
-                            <td className="px-5 py-4">{job.progress}</td>
-                            <td className="px-5 py-4">{job.decision}</td>
-                            <td className="px-5 py-4">
-                              <span className={cn("inline-flex rounded-full px-2.5 py-1 text-xs font-semibold", job.status === "Paused" ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary")}>
-                                {job.status}
+                              <span className="inline-flex rounded-full bg-secondary px-2.5 py-1 text-xs font-semibold text-secondary-foreground">
+                                {p.processType}
                               </span>
                             </td>
                             <td className="px-5 py-4">
-                              {job.status === "Paused" && !maintenanceMode ? (
-                                <Button size="sm" onClick={() => relaunchJob(job.id)}>
-                                  <PlayCircle className="h-4 w-4" /> Relaunch
-                                </Button>
-                              ) : (
-                                <span className="text-xs text-muted-foreground">No action</span>
-                              )}
+                              <div className="font-semibold">{p.campaignType}</div>
+                              <div className="text-xs text-muted-foreground">{p.campaignName}</div>
+                            </td>
+                            <td className="px-5 py-4">{p.owner}</td>
+                            <td className="px-5 py-4">{p.progress}</td>
+                            <td className="px-5 py-4">
+                              <span className="inline-flex rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
+                                {p.status}
+                              </span>
                             </td>
                           </tr>
                         ))}
