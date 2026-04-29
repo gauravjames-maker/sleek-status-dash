@@ -71,7 +71,7 @@ const inFlightProcesses: ProcessItem[] = [
     processType: "Job",
     campaignType: "Marketing",
     campaignName: "Spring Sale 2026",
-    owner: "Marketing Ops",
+    owner: "Priya Sharma",
     progress: "72% complete",
     status: "Processing",
   },
@@ -82,7 +82,7 @@ const inFlightProcesses: ProcessItem[] = [
     processType: "Job",
     campaignType: "Transactional",
     campaignName: "Order Confirmation Series",
-    owner: "Analytics",
+    owner: "Daniel Chen",
     progress: "41% complete",
     status: "Processing",
   },
@@ -93,7 +93,7 @@ const inFlightProcesses: ProcessItem[] = [
     processType: "Hosted Data",
     campaignType: "External",
     campaignName: "CRM Sync",
-    owner: "Data Platform",
+    owner: "Marcus Reilly",
     progress: "Receiving payload",
     status: "Processing",
   },
@@ -104,7 +104,7 @@ const inFlightProcesses: ProcessItem[] = [
     processType: "Hosted Data",
     campaignType: "External",
     campaignName: "Loyalty Sync",
-    owner: "Loyalty Team",
+    owner: "Sofia Alvarez",
     progress: "Validating records",
     status: "Processing",
   },
@@ -115,7 +115,7 @@ const inFlightProcesses: ProcessItem[] = [
     processType: "Snapshot",
     campaignType: "Marketing",
     campaignName: "Subscriber Blueprint",
-    owner: "Audience Ops",
+    owner: "Hannah Patel",
     progress: "55% complete",
     status: "Processing",
   },
@@ -126,7 +126,7 @@ const inFlightProcesses: ProcessItem[] = [
     processType: "Snapshot",
     campaignType: "Marketing",
     campaignName: "VIP Blueprint",
-    owner: "Audience Ops",
+    owner: "Liam O'Connor",
     progress: "27% complete",
     status: "Processing",
   },
@@ -137,7 +137,7 @@ const inFlightProcesses: ProcessItem[] = [
     processType: "Journey",
     campaignType: "Experiments",
     campaignName: "Welcome Journey",
-    owner: "Journeys",
+    owner: "Emma Whitfield",
     progress: "Step 3 of 6",
     status: "Processing",
   },
@@ -148,7 +148,7 @@ const inFlightProcesses: ProcessItem[] = [
     processType: "Journey",
     campaignType: "Marketing",
     campaignName: "Cart Recovery",
-    owner: "Journeys",
+    owner: "Noah Becker",
     progress: "Step 2 of 4",
     status: "Processing",
   },
@@ -203,13 +203,11 @@ const SystemConfiguration = () => {
   };
 
   const downloadProcessesCsv = () => {
-    const header = ["Process ID", "Start Time", "Type", "Campaign Name", "Campaign Type", "Owner", "Status"];
+    const header = ["Process ID", "Start Time", "Type", "Owner", "Status"];
     const rows = processes.map((p) => [
       p.id,
       p.startTime,
       p.processType,
-      p.campaignName,
-      p.campaignType,
       p.owner,
       p.status,
     ]);
@@ -346,7 +344,7 @@ const SystemConfiguration = () => {
                           <th className="px-5 py-3 font-semibold">Process</th>
                           <th className="px-5 py-3 font-semibold">Start time</th>
                           <th className="px-5 py-3 font-semibold">Type</th>
-                          <th className="px-5 py-3 font-semibold">Campaign</th>
+                          
                           <th className="px-5 py-3 font-semibold">Owner</th>
                           
                           <th className="px-5 py-3 font-semibold">Status</th>
@@ -364,10 +362,6 @@ const SystemConfiguration = () => {
                               <span className="inline-flex rounded-full bg-secondary px-2.5 py-1 text-xs font-semibold text-secondary-foreground">
                                 {p.processType}
                               </span>
-                            </td>
-                            <td className="px-5 py-4">
-                              <div className="font-semibold">{p.campaignType}</div>
-                              <div className="text-xs text-muted-foreground">{p.campaignName}</div>
                             </td>
                             <td className="px-5 py-4">{p.owner}</td>
                             
