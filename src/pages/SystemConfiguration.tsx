@@ -203,7 +203,7 @@ const SystemConfiguration = () => {
   };
 
   const downloadProcessesCsv = () => {
-    const header = ["Process ID", "Start Time", "Type", "Campaign Name", "Campaign Type", "Owner", "Status", "Progress"];
+    const header = ["Process ID", "Start Time", "Type", "Campaign Name", "Campaign Type", "Owner", "Status"];
     const rows = processes.map((p) => [
       p.id,
       p.startTime,
@@ -212,7 +212,6 @@ const SystemConfiguration = () => {
       p.campaignType,
       p.owner,
       p.status,
-      p.progress,
     ]);
     const csv = [header, ...rows]
       .map((row) => row.map((value) => `"${value.replace(/"/g, '""')}"`).join(","))
