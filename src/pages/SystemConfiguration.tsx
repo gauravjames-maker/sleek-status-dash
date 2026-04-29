@@ -163,13 +163,34 @@ const SystemConfiguration = () => {
     useMaintenanceMode();
   const [processes] = useState<ProcessItem[]>(inFlightProcesses);
   const [notificationEmail, setNotificationEmail] = useState("ops-team@company.com");
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingEmail, setPendingEmail] = useState(notificationEmail);
+
+  const requestEnableMaintenance = () => {
+    setPendingEmail(notificationEmail);
+    setConfirmOpen(true);
+  };
+
+  const confirmEnableMaintenance = () => {
+    setNotificationEmail(pendingEmail);
+    setMaintenanceMode(true);
+    setItems((current) =>
+      current.map((item) =>
+        item.label === "Maintenance mode" ? { ...item, enabled: true } : item
+      )
+    );
+    setConfirmOpen(false);
+  };
 
   const toggleItem = (label: string) => {
     if (label === "Maintenance mode") {
-      const next = !maintenanceMode;
-      setMaintenanceMode(next);
+      if (!maintenanceMode) {
+        requestEnableMaintenance();
+        return;
+      }
+      setMaintenanceMode(false);
       setItems((current) =>
-        current.map((item) => (item.label === label ? { ...item, enabled: next } : item))
+        current.map((item) => (item.label === label ? { ...item, enabled: false } : item))
       );
       return;
     }
