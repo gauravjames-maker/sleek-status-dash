@@ -444,6 +444,61 @@ const SystemConfiguration = () => {
           )}
         </section>
       </main>
+
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              Enable maintenance mode?
+            </DialogTitle>
+            <DialogDescription>
+              New scheduled work will be blocked until maintenance mode is disabled.
+              In-flight processes will be allowed to finish naturally.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="rounded-md border border-border bg-secondary/50 p-4">
+              <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Currently running
+              </div>
+              <div className="mt-1 text-2xl font-bold">
+                {inFlightCount} {inFlightCount === 1 ? "process" : "processes"}
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                A completion notification will be emailed once all of these finish.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="notify-email">Notification email</Label>
+              <Input
+                id="notify-email"
+                type="email"
+                value={pendingEmail}
+                onChange={(event) => setPendingEmail(event.target.value)}
+                placeholder="ops-team@company.com"
+              />
+              <p className="text-xs text-muted-foreground">
+                This address will receive the all-clear notification.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setConfirmOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={confirmEnableMaintenance}
+              disabled={!pendingEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(pendingEmail)}
+            >
+              Confirm &amp; enable
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
