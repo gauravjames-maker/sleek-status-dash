@@ -484,131 +484,171 @@ const SystemConfiguration = () => {
           </DialogHeader>
 
           <div className="space-y-4">
-            <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Time-based
+            <p className="text-xs text-muted-foreground">
+              Pick either a time-based rule or an event-based rule — only one category can be active at a time.
+            </p>
+
+            {/* Time-based category */}
+            <div
+              className={cn(
+                "rounded-md border border-border p-4 space-y-4",
+                autoOffCategory !== "time" && "opacity-60"
+              )}
+            >
+              <label className="flex cursor-pointer items-center gap-3">
+                <input
+                  type="radio"
+                  name="autoOffCategory"
+                  checked={autoOffCategory === "time"}
+                  onChange={() => setAutoOffCategory("time")}
+                />
+                <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Time-based
+                </span>
+              </label>
+
+              <label className="flex cursor-pointer items-start gap-3 rounded-md border border-border p-3 hover:bg-accent/50">
+                <input
+                  type="radio"
+                  name="autoOffModeModal"
+                  className="mt-1"
+                  checked={autoOffCategory === "time" && autoOffMode === "duration"}
+                  onChange={() => setAutoOffMode("duration")}
+                  disabled={autoOffCategory !== "time"}
+                />
+                <div className="flex-1 space-y-2">
+                  <div className="flex items-center gap-2 text-sm font-semibold">
+                    <Clock className="h-4 w-4" /> Auto-disable after a duration
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Catches the "forgot to turn it off" case. Default 1 hour covers most maintenance windows.
+                  </p>
+                  <Select
+                    value={autoOffDuration}
+                    onValueChange={setAutoOffDuration}
+                    disabled={autoOffCategory !== "time" || autoOffMode !== "duration"}
+                  >
+                    <SelectTrigger className="w-60">
+                      <SelectValue placeholder="Select duration" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DURATION_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </label>
+
+              <label className="flex cursor-pointer items-start gap-3 rounded-md border border-border p-3 hover:bg-accent/50">
+                <input
+                  type="radio"
+                  name="autoOffModeModal"
+                  className="mt-1"
+                  checked={autoOffCategory === "time" && autoOffMode === "datetime"}
+                  onChange={() => setAutoOffMode("datetime")}
+                  disabled={autoOffCategory !== "time"}
+                />
+                <div className="flex-1 space-y-2">
+                  <div className="flex items-center gap-2 text-sm font-semibold">
+                    <CalendarIcon className="h-4 w-4" /> Auto-disable at a specific time
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Useful for scheduled deploy windows ("disable at 11pm tonight").
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          disabled={autoOffCategory !== "time" || autoOffMode !== "datetime"}
+                          className={cn(
+                            "w-[200px] justify-start text-left font-normal",
+                            !autoOffDate && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {autoOffDate ? format(autoOffDate, "PPP") : <span>Pick a date</span>}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={autoOffDate}
+                          onSelect={setAutoOffDate}
+                          initialFocus
+                          className={cn("p-3 pointer-events-auto")}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <Input
+                      type="time"
+                      value={autoOffTime}
+                      onChange={(e) => setAutoOffTime(e.target.value)}
+                      disabled={autoOffCategory !== "time" || autoOffMode !== "datetime"}
+                      className="w-32"
+                    />
+                  </div>
+                </div>
+              </label>
+
+              <label className="flex cursor-pointer items-start gap-3 rounded-md border border-border p-3 hover:bg-accent/50">
+                <input
+                  type="radio"
+                  name="autoOffModeModal"
+                  className="mt-1"
+                  checked={autoOffCategory === "time" && autoOffMode === "manual"}
+                  onChange={() => setAutoOffMode("manual")}
+                  disabled={autoOffCategory !== "time"}
+                />
+                <div className="flex-1">
+                  <div className="text-sm font-semibold">Until I turn it off</div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    No automatic time-based disable. Use only if you actively monitor the window.
+                  </p>
+                </div>
+              </label>
             </div>
 
-            <label className="flex cursor-pointer items-start gap-3 rounded-md border border-border p-4 hover:bg-accent/50">
-              <input
-                type="radio"
-                name="autoOffModeModal"
-                className="mt-1"
-                checked={autoOffMode === "duration"}
-                onChange={() => setAutoOffMode("duration")}
-              />
-              <div className="flex-1 space-y-2">
-                <div className="flex items-center gap-2 text-sm font-semibold">
-                  <Clock className="h-4 w-4" /> Auto-disable after a duration
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Catches the "forgot to turn it off" case. Default 1 hour covers most maintenance windows.
-                </p>
-                <Select
-                  value={autoOffDuration}
-                  onValueChange={setAutoOffDuration}
-                  disabled={autoOffMode !== "duration"}
-                >
-                  <SelectTrigger className="w-60">
-                    <SelectValue placeholder="Select duration" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {DURATION_OPTIONS.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </label>
+            {/* Event-based category */}
+            <div
+              className={cn(
+                "rounded-md border border-border p-4 space-y-4",
+                autoOffCategory !== "event" && "opacity-60"
+              )}
+            >
+              <label className="flex cursor-pointer items-center gap-3">
+                <input
+                  type="radio"
+                  name="autoOffCategory"
+                  checked={autoOffCategory === "event"}
+                  onChange={() => setAutoOffCategory("event")}
+                />
+                <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Event-based
+                </span>
+              </label>
 
-            <label className="flex cursor-pointer items-start gap-3 rounded-md border border-border p-4 hover:bg-accent/50">
-              <input
-                type="radio"
-                name="autoOffModeModal"
-                className="mt-1"
-                checked={autoOffMode === "datetime"}
-                onChange={() => setAutoOffMode("datetime")}
-              />
-              <div className="flex-1 space-y-2">
-                <div className="flex items-center gap-2 text-sm font-semibold">
-                  <CalendarIcon className="h-4 w-4" /> Auto-disable at a specific time
+              <label className="flex cursor-pointer items-start gap-3 rounded-md border border-border p-3 hover:bg-accent/50">
+                <Checkbox
+                  checked={autoDisableOnRestart}
+                  onCheckedChange={(v) => setAutoDisableOnRestart(Boolean(v))}
+                  disabled={autoOffCategory !== "event"}
+                  className="mt-0.5"
+                />
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 text-sm font-semibold">
+                    <Power className="h-4 w-4" /> Auto-disable on system restart
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    When the platform restarts, Maintenance Mode turns itself off so the system doesn't
+                    stay gated through an unintended outage.
+                  </p>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Useful for scheduled deploy windows ("disable at 11pm tonight").
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        disabled={autoOffMode !== "datetime"}
-                        className={cn(
-                          "w-[200px] justify-start text-left font-normal",
-                          !autoOffDate && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {autoOffDate ? format(autoOffDate, "PPP") : <span>Pick a date</span>}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={autoOffDate}
-                        onSelect={setAutoOffDate}
-                        initialFocus
-                        className={cn("p-3 pointer-events-auto")}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <Input
-                    type="time"
-                    value={autoOffTime}
-                    onChange={(e) => setAutoOffTime(e.target.value)}
-                    disabled={autoOffMode !== "datetime"}
-                    className="w-32"
-                  />
-                </div>
-              </div>
-            </label>
-
-            <label className="flex cursor-pointer items-start gap-3 rounded-md border border-border p-4 hover:bg-accent/50">
-              <input
-                type="radio"
-                name="autoOffModeModal"
-                className="mt-1"
-                checked={autoOffMode === "manual"}
-                onChange={() => setAutoOffMode("manual")}
-              />
-              <div className="flex-1">
-                <div className="text-sm font-semibold">Until I turn it off</div>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  No automatic time-based disable. Use only if you actively monitor the window.
-                </p>
-              </div>
-            </label>
-
-            <div className="pt-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Event-based
+              </label>
             </div>
-
-            <label className="flex cursor-pointer items-start gap-3 rounded-md border border-border p-4 hover:bg-accent/50">
-              <Checkbox
-                checked={autoDisableOnRestart}
-                onCheckedChange={(v) => setAutoDisableOnRestart(Boolean(v))}
-                className="mt-0.5"
-              />
-              <div className="flex-1">
-                <div className="flex items-center gap-2 text-sm font-semibold">
-                  <Power className="h-4 w-4" /> Auto-disable on system restart
-                </div>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  When the platform restarts, Maintenance Mode turns itself off so the system doesn't
-                  stay gated through an unintended outage.
-                </p>
-              </div>
-            </label>
           </div>
 
           <DialogFooter>
