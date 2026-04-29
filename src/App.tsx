@@ -27,6 +27,8 @@ import Journeys from "./pages/Journeys";
 import JourneyDetail from "./pages/JourneyDetail";
 import SystemConfiguration from "./pages/SystemConfiguration";
 import NotFound from "./pages/NotFound";
+import { MaintenanceModeProvider } from "./context/MaintenanceModeContext";
+import { MaintenanceModeBanner } from "./components/MaintenanceModeBanner";
 
 const queryClient = new QueryClient();
 
@@ -35,8 +37,12 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
-        <Routes>
+      <MaintenanceModeProvider>
+        <BrowserRouter>
+          <div className="flex h-screen flex-col">
+            <MaintenanceModeBanner />
+            <div className="min-h-0 flex-1">
+              <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/campaigns" element={<Campaigns />} />
           <Route path="/campaigns/journeys" element={<Journeys />} />
