@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { format } from "date-fns";
 import {
   ChevronDown,
   CircleSlash,
@@ -6,6 +7,9 @@ import {
   SlidersHorizontal,
   Wrench,
   AlertTriangle,
+  CalendarIcon,
+  Clock,
+  Power,
 } from "lucide-react";
 import { CampaignSidebar } from "@/components/CampaignSidebar";
 import { Button } from "@/components/ui/button";
@@ -20,8 +24,28 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { useMaintenanceMode } from "@/context/MaintenanceModeContext";
+
+type AutoOffMode = "duration" | "datetime" | "manual";
+const DURATION_OPTIONS = [
+  { value: "30", label: "30 minutes" },
+  { value: "60", label: "1 hour" },
+  { value: "120", label: "2 hours" },
+  { value: "240", label: "4 hours" },
+  { value: "480", label: "8 hours" },
+  { value: "manual", label: "Until I turn it off" },
+];
 
 interface ConfigItem {
   label: string;
