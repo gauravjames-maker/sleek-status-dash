@@ -193,6 +193,23 @@ const SystemConfiguration = () => {
   const [autoOffDuration, setAutoOffDuration] = useState<string>("60");
   const [autoOffDate, setAutoOffDate] = useState<Date | undefined>(undefined);
   const [autoOffTime, setAutoOffTime] = useState<string>("23:00");
+  const [autoRulesOpen, setAutoRulesOpen] = useState(false);
+
+  const autoRulesSummary = (() => {
+    const parts: string[] = [];
+    if (autoOffMode === "duration") {
+      const opt = DURATION_OPTIONS.find((o) => o.value === autoOffDuration);
+      parts.push(opt ? `After ${opt.label}` : "After a duration");
+    } else if (autoOffMode === "datetime") {
+      parts.push(
+        autoOffDate ? `At ${format(autoOffDate, "PP")} ${autoOffTime}` : "At a specific time"
+      );
+    } else {
+      parts.push("Manual only");
+    }
+    if (autoDisableOnRestart) parts.push("on restart");
+    return parts.join(" • ");
+  })();
 
   const requestEnableMaintenance = () => {
     setPendingEmail(notificationEmail);
