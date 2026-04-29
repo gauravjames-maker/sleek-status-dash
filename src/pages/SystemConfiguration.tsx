@@ -203,7 +203,7 @@ const SystemConfiguration = () => {
   };
 
   const downloadProcessesCsv = () => {
-    const header = ["Process ID", "Start Time", "Type", "Campaign Name", "Campaign Type", "Owner", "Status", "Progress"];
+    const header = ["Process ID", "Start Time", "Type", "Campaign Name", "Campaign Type", "Owner", "Status"];
     const rows = processes.map((p) => [
       p.id,
       p.startTime,
@@ -212,7 +212,6 @@ const SystemConfiguration = () => {
       p.campaignType,
       p.owner,
       p.status,
-      p.progress,
     ]);
     const csv = [header, ...rows]
       .map((row) => row.map((value) => `"${value.replace(/"/g, '""')}"`).join(","))
@@ -349,7 +348,7 @@ const SystemConfiguration = () => {
                           <th className="px-5 py-3 font-semibold">Type</th>
                           <th className="px-5 py-3 font-semibold">Campaign</th>
                           <th className="px-5 py-3 font-semibold">Owner</th>
-                          <th className="px-5 py-3 font-semibold">Progress</th>
+                          
                           <th className="px-5 py-3 font-semibold">Status</th>
                         </tr>
                       </thead>
@@ -371,7 +370,7 @@ const SystemConfiguration = () => {
                               <div className="text-xs text-muted-foreground">{p.campaignName}</div>
                             </td>
                             <td className="px-5 py-4">{p.owner}</td>
-                            <td className="px-5 py-4">{p.progress}</td>
+                            
                             <td className="px-5 py-4">
                               <span className="inline-flex rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
                                 {p.status}
