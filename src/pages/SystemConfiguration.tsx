@@ -189,6 +189,10 @@ const SystemConfiguration = () => {
   const [notificationEmail, setNotificationEmail] = useState("ops-team@company.com");
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingEmail, setPendingEmail] = useState(notificationEmail);
+  const [autoOffMode, setAutoOffMode] = useState<AutoOffMode>("duration");
+  const [autoOffDuration, setAutoOffDuration] = useState<string>("60");
+  const [autoOffDate, setAutoOffDate] = useState<Date | undefined>(undefined);
+  const [autoOffTime, setAutoOffTime] = useState<string>("23:00");
 
   const requestEnableMaintenance = () => {
     setPendingEmail(notificationEmail);
