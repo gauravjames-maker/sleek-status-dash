@@ -18,7 +18,7 @@ interface ConfigItem {
   enabled?: boolean;
 }
 
-type ProcessType = "Job" | "Posted Data" | "Snapshot" | "Journey";
+type ProcessType = "Job" | "Hosted Data" | "Snapshot" | "Journey";
 
 interface ProcessItem {
   id: string;
@@ -32,7 +32,7 @@ interface ProcessItem {
   status: "Processing" | "Completed";
 }
 
-const PROCESS_TYPES: ProcessType[] = ["Job", "Posted Data", "Snapshot", "Journey"];
+const PROCESS_TYPES: ProcessType[] = ["Job", "Hosted Data", "Snapshot", "Journey"];
 
 const configurationItems: ConfigItem[] = [
   { label: "AWS Data Encryption", active: true, enabled: true },
@@ -79,7 +79,7 @@ const inFlightProcesses: ProcessItem[] = [
     id: "PD-3310",
     name: "Inbound CRM events batch",
     startTime: "Apr 22, 2026 1:40 PM",
-    processType: "Posted Data",
+    processType: "Hosted Data",
     campaignType: "External",
     campaignName: "CRM Sync",
     owner: "Data Platform",
@@ -90,7 +90,7 @@ const inFlightProcesses: ProcessItem[] = [
     id: "PD-3312",
     name: "Loyalty tier updates",
     startTime: "Apr 22, 2026 1:52 PM",
-    processType: "Posted Data",
+    processType: "Hosted Data",
     campaignType: "External",
     campaignName: "Loyalty Sync",
     owner: "Loyalty Team",
