@@ -189,6 +189,7 @@ const SystemConfiguration = () => {
   const [notificationEmail, setNotificationEmail] = useState("ops-team@company.com");
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingEmail, setPendingEmail] = useState(notificationEmail);
+  const [autoOffCategory, setAutoOffCategory] = useState<"time" | "event">("time");
   const [autoOffMode, setAutoOffMode] = useState<AutoOffMode>("duration");
   const [autoOffDuration, setAutoOffDuration] = useState<string>("60");
   const [autoOffDate, setAutoOffDate] = useState<Date | undefined>(undefined);
@@ -196,19 +197,17 @@ const SystemConfiguration = () => {
   const [autoRulesOpen, setAutoRulesOpen] = useState(false);
 
   const autoRulesSummary = (() => {
-    const parts: string[] = [];
+    if (autoOffCategory === "event") {
+      return autoDisableOnRestart ? "On system restart" : "Event-based (none selected)";
+    }
     if (autoOffMode === "duration") {
       const opt = DURATION_OPTIONS.find((o) => o.value === autoOffDuration);
-      parts.push(opt ? `After ${opt.label}` : "After a duration");
-    } else if (autoOffMode === "datetime") {
-      parts.push(
-        autoOffDate ? `At ${format(autoOffDate, "PP")} ${autoOffTime}` : "At a specific time"
-      );
-    } else {
-      parts.push("Manual only");
+      return opt ? `After ${opt.label}` : "After a duration";
     }
-    if (autoDisableOnRestart) parts.push("on restart");
-    return parts.join(" • ");
+    if (autoOffMode === "datetime") {
+      return autoOffDate ? `At ${format(autoOffDate, "PP")} ${autoOffTime}` : "At a specific time";
+    }
+    return "Manual only";
   })();
 
   const requestEnableMaintenance = () => {
